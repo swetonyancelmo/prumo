@@ -1,0 +1,30 @@
+# Dependencies
+node_modules/
+
+# Build
+dist/
+.next/
+coverage/
+*.tsbuildinfo
+
+# Environment — NUNCA commitar segredos
+.env
+.env.local
+.env.*.local
+
+# Prisma
+**/prisma/*.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS / editor
+.DS_Store
+.idea
+.vscode/*
+!.vscode/extensions.json
+
+# Claude Code tooling (não faz parte do SaaS)
+.agents/
+skills-lock.json
