@@ -7,6 +7,7 @@ import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { FinanceModule } from './finance/finance.module';
+import { ReportsModule } from './reports/reports.module';
 import { TasksModule } from './tasks/tasks.module';
 import { WhatsappModule } from './whatsapp/whatsapp.module';
 import { AiModule } from './ai/ai.module';
@@ -18,6 +19,7 @@ import { AiModule } from './ai/ai.module';
     AuthModule,
     UsersModule,
     FinanceModule,
+    ReportsModule,
     TasksModule,
     WhatsappModule,
     AiModule,

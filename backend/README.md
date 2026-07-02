@@ -6,8 +6,9 @@ Backend em **NestJS + Prisma + Supabase (Postgres)**.
 ## Fases concluídas: 1 (backend core) e 2 (consumido pelo web em `../frontend`)
 
 Módulos implementados: `UsersModule`, `FinanceModule` (categorias/despesas/receitas),
-`TasksModule`, `AuthModule` (validação de JWT do Supabase). `WhatsappModule` e `AiModule`
-existem como placeholders (Fases 3 e 4).
+`TasksModule`, `ReportsModule` (relatórios financeiros — Fase 5 adiantada), `AuthModule`
+(validação de JWT do Supabase). `WhatsappModule` e `AiModule` existem como placeholders
+(Fases 3 e 4).
 
 ## Setup
 
@@ -54,6 +55,15 @@ npm test                # testes unitários (parsing + cálculo financeiro)
 | CRUD   | `/api/expenses`     | Despesas                           |
 | CRUD   | `/api/incomes`      | Receitas                           |
 | CRUD   | `/api/tasks`        | Tarefas (recorrência + `hasTime`)  |
+| GET    | `/api/reports`      | Relatório financeiro por período   |
+
+### `GET /api/reports`
+
+`?period=week|month|quarter|semester|year&anchor=<ISO>` (âncora = qualquer dia do período;
+default hoje). Retorna `{ range, totals, previous, byCategory, series }` — totais, variação
+vs. período anterior, gasto por categoria e série por sub-período. Lógica pura e testada em
+`reports/reports.util.ts`; será reusado pelo WhatsApp na Fase 5. Cálculos em horário local —
+em produção fixar `TZ=America/Sao_Paulo`.
 
 ## Modelo de dados
 

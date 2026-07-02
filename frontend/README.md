@@ -25,10 +25,19 @@ Direção "caderno de organização que respira": paleta Névoa/Tinta/Orquídea/
 tipografia Bricolage Grotesque + Figtree, e a "aba de categoria" como elemento de
 assinatura. Tokens em `src/app/globals.css`.
 
-## Telas (Fase 2)
+## Telas
 
+- `/` — **landing page** pública (marketing, SEO); nav ciente de sessão
 - `/login` e `/onboarding` (cria o perfil com telefone — WhatsApp-first)
 - `/dashboard` — saldo do mês, gastos por categoria, prévia de tarefas
 - `/financas` — despesas e receitas do mês (criar/editar/excluir)
+- `/relatorios` — relatórios financeiros por período (semana → ano): KPIs com variação,
+  gráficos (barras, rosca, linha) e tabela por categoria. Consome `GET /api/reports`
 - `/tarefas` — tarefas com vencimento, **horário opcional** (com hora = compromisso/agenda)
   e recorrência (criar/editar/concluir/excluir)
+
+## Notas
+
+- **Dark mode** (`next-themes`): default do sistema + toggle Sistema/Claro/Escuro.
+- **Mobile**: tab bar fixa no rodapé + topo enxuto; desktop usa a sidebar.
+- shadcn com base **Base UI** (não Radix): componentes usam `render` (não `asChild`).

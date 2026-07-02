@@ -73,7 +73,7 @@ export default function DashboardPage() {
         title={`Olá, ${firstName} 👋`}
         subtitle={currentMonthLabel()}
         action={
-          <Button render={<Link href="/financas" />}>
+          <Button nativeButton={false} render={<Link href="/financas" />}>
             <PlusIcon data-icon="inline-start" />
             Novo lançamento
           </Button>
@@ -210,6 +210,7 @@ export default function DashboardPage() {
           </CardContent>
           <CardFooter>
             <Button
+              nativeButton={false}
               render={<Link href="/tarefas" />}
               variant="ghost"
               className="w-full"

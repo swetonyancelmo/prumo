@@ -39,6 +39,30 @@ export interface Income {
   createdAt: string;
 }
 
+export type ReportPeriod = "week" | "month" | "quarter" | "semester" | "year";
+
+export interface CategoryReport {
+  name: string;
+  total: number;
+  previousTotal: number;
+  share: number;
+}
+
+export interface ReportSeriesPoint {
+  label: string;
+  incomes: number;
+  expenses: number;
+}
+
+export interface Report {
+  period: ReportPeriod;
+  range: { start: string; end: string; label: string };
+  totals: { incomes: number; expenses: number; balance: number };
+  previous: { incomes: number; expenses: number; balance: number };
+  byCategory: CategoryReport[];
+  series: ReportSeriesPoint[];
+}
+
 export interface Task {
   id: string;
   description: string;

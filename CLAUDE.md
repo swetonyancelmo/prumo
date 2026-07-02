@@ -92,8 +92,9 @@ não alimentação") e para auditoria.
    salvando raw, respondendo "recebi" — validar toda a infra (fila, webhook) isolada
 4. **IA parsing**: Claude API com tool use extraindo JSON estruturado, salvando no
    banco, respondendo confirmação
-5. **Relatórios**: endpoint de relatório mensal (gasto por categoria, saldo
-   receita−despesa), acessível via WhatsApp e web
+5. **Relatórios** 🟡 **web adiantada**: endpoint `GET /api/reports` + página `/relatorios`
+   (semana/mês/trimestre/semestre/ano, gráficos e variação) já prontos; falta expor via
+   WhatsApp (reusa o mesmo endpoint) na Fase 5 completa
 6. **Refinamentos**: recorrência de tarefas, notificações proativas (cron diário
    checando vencimentos e orçamentos), correção de lançamento via mensagem
 
@@ -202,3 +203,46 @@ Registradas em 2026-07-02. Efetivadas.
   visão de calendário (Fase 5–6) lê as mesmas `tasks`; a extração da IA (Fase 4) produz
   `{ description, dueDate, hasTime }` de uma mensagem só. Separar em `events` só se surgir
   necessidade de local/duração/participantes/integração com calendários externos.
+
+### Extras da web (pós-Fase 2)
+- **Dark mode**: `next-themes` (`ThemeProvider`, `attribute="class"`), default do sistema +
+  toggle Sistema/Claro/Escuro persistido. A paleta escura vive em `.dark` no `globals.css`.
+  `<html suppressHydrationWarning>` é obrigatório. Toggle no app (sidebar/topo) e nas telas
+  de auth.
+- **Landing page pública**: a rota `/` é a página de marketing (server component, com
+  `metadata` de SEO) — NÃO redireciona mais. Nav ciente de sessão ("Entrar/Criar conta" ↔
+  "Ir para o painel"). Rotas do app ficam em `/dashboard`, `/financas`, `/relatorios`,
+  `/tarefas`. O login, após autenticar, manda para `/dashboard`.
+- **Navegação mobile**: no mobile o app usa **tab bar fixa no rodapé** (4 itens) + topo
+  enxuto (logo, tema, avatar → menu de conta). Desktop segue com a sidebar. Em `app-shell.tsx`.
+- **Base UI (shadcn base) — pegadinhas de runtime** (o `tsc` não pega): (1) `DropdownMenuLabel`
+  é um `Menu.GroupLabel` e precisa estar dentro de um `DropdownMenuGroup`; (2) `Button` usado
+  como link (`render={<Link/>}`) deve receber `nativeButton={false}` para não perder semântica
+  e não poluir o console.
+
+## Relatórios financeiros (Fase 5 adiantada — endpoint + web)
+
+Feito antes da Fase 3 a pedido do produto. O **endpoint é a peça reutilizável**: na Fase 5,
+o worker do WhatsApp chama o mesmo `GET /api/reports` para responder relatórios por mensagem.
+
+### Backend — `ReportsModule`
+- `GET /api/reports?period=week|month|quarter|semester|year&anchor=<data>` (JWT obrigatório).
+  `anchor` é qualquer dia dentro do período desejado (default: hoje).
+- **Lógica pura e testada** em `reports.util.ts` (`resolvePeriod`, `buildReport`), isolada de
+  I/O como o `FinanceService`. Agrega **em centavos**; `reports.service.ts` faz a query Prisma
+  (escopo por `userId` — RLS não cobre o Prisma) e delega para a lógica pura. Testes em
+  `reports.util.spec.ts`.
+- **Resposta**: `{ period, range:{start,end,label}, totals:{incomes,expenses,balance},
+  previous:{...} (para variação), byCategory:[{name,total,previousTotal,share}],
+  series:[{label,incomes,expenses}] }`. Buckets da série por período: semana→7 dias,
+  mês→semanas, trimestre→3 meses, semestre→6 meses, ano→12 meses.
+- **Fuso**: cálculos de calendário em horário LOCAL do processo — em produção fixar
+  `TZ=America/Sao_Paulo`. A âncora é enviada pelo front como **meio-dia local** (`...T12:00:00`
+  sem `Z`) para não escorregar de dia.
+
+### Frontend — `/relatorios`
+- Seletor de período (ToggleGroup), navegação ‹ ›, KPIs com variação vs. período anterior,
+  3 gráficos (barras Receita×Despesa, rosca por categoria, linha de saldo acumulado) e tabela.
+- Gráficos com **shadcn Chart (Recharts)**, reagindo ao dark mode via as `--chart-1..5`.
+  A paleta categórica foi validada pela skill `dataviz` (daltonismo OK; contraste de algumas
+  cores sobre branco fica <3:1, daí o **relief obrigatório**: rótulos/legenda + a tabela).

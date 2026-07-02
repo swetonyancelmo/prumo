@@ -44,13 +44,18 @@ export default function LandingPage() {
               web para enxergar o mês inteiro.
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-3">
-              <Button size="lg" render={<Link href="/login" />}>
+              <Button
+                size="lg"
+                nativeButton={false}
+                render={<Link href="/login" />}
+              >
                 Criar conta grátis
                 <ArrowRightIcon data-icon="inline-end" />
               </Button>
               <Button
                 size="lg"
                 variant="ghost"
+                nativeButton={false}
                 render={<Link href="#como-funciona" />}
               >
                 Ver como funciona
@@ -151,6 +156,7 @@ export default function LandingPage() {
             <Button
               size="lg"
               variant="secondary"
+              nativeButton={false}
               render={<Link href="/login" />}
             >
               Criar conta grátis

@@ -18,17 +18,22 @@ export function LandingNav() {
         <div className="flex items-center gap-1.5">
           <ThemeToggle />
           {!loading && session ? (
-            <Button render={<Link href="/dashboard" />}>Ir para o painel</Button>
+            <Button nativeButton={false} render={<Link href="/dashboard" />}>
+              Ir para o painel
+            </Button>
           ) : (
             <>
               <Button
                 variant="ghost"
+                nativeButton={false}
                 render={<Link href="/login" />}
                 className="max-sm:hidden"
               >
                 Entrar
               </Button>
-              <Button render={<Link href="/login" />}>Criar conta</Button>
+              <Button nativeButton={false} render={<Link href="/login" />}>
+                Criar conta
+              </Button>
             </>
           )}
         </div>

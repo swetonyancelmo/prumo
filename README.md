@@ -36,6 +36,6 @@ cp .env.local.example .env.local   # preencha URL/chave pública do Supabase + U
 npm run dev                        # http://localhost:3000
 ```
 
-Telas: login, onboarding (perfil + telefone), dashboard (saldo do mês, gastos por
-categoria, tarefas), finanças (despesas/receitas) e tarefas (com vencimento e horário).
-Ver `frontend/README.md` para detalhes.
+Telas: landing page pública (`/`), login, onboarding (perfil + telefone), dashboard,
+finanças (despesas/receitas), relatórios (gráficos por período) e tarefas (com vencimento
+e horário). Dark mode e navegação mobile (tab bar). Ver `frontend/README.md` para detalhes.
