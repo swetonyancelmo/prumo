@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/components/auth-provider";
 import { useProfile } from "@/components/profile-provider";
 import { LogoMark } from "@/components/logo";
+import { ThemeToggle } from "@/components/theme-toggle";
 import {
   Avatar,
   AvatarFallback,
@@ -38,7 +39,7 @@ function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
                 : "text-muted-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground",
             )}
           >
-            <Icon className="size-[18px] shrink-0" />
+            <Icon className="size-4.5 shrink-0" />
             <span>{label}</span>
           </Link>
         );
@@ -75,6 +76,7 @@ function UserFooter() {
           {profile.phoneNumber}
         </p>
       </div>
+      <ThemeToggle />
       <Button
         variant="ghost"
         size="icon"
