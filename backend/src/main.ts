@@ -1,5 +1,4 @@
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
@@ -7,9 +6,9 @@ async function bootstrap() {
 
   app.setGlobalPrefix('api');
   app.enableCors();
-  app.useGlobalPipes(
-    new ValidationPipe({ whitelist: true, transform: true }),
-  );
+  // A validação é feita pelo ZodValidationPipe registrado como APP_PIPE global
+  // (ver AppModule). Não usamos o ValidationPipe nativo do Nest — ele depende de
+  // class-validator, que este projeto substituiu por Zod/nestjs-zod.
 
   const port = process.env.PORT ? Number(process.env.PORT) : 3000;
   await app.listen(port);

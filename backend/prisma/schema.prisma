@@ -108,6 +108,9 @@ model Task {
   userId         String      @map("user_id") @db.Uuid
   description    String
   dueDate        DateTime?   @map("due_date")
+  // Quando true, a hora em dueDate é significativa (compromisso/agenda).
+  // Quando false, dueDate representa o dia inteiro (tarefa sem horário).
+  hasTime        Boolean     @default(false) @map("has_time")
   isRecurring    Boolean     @default(false) @map("is_recurring")
   recurrenceRule String?     @map("recurrence_rule")
   isCompleted    Boolean     @default(false) @map("is_completed")

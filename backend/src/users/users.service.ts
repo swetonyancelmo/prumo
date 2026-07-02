@@ -12,16 +12,26 @@ import { UpdateUserDto } from './dto/update-user.dto';
 export class UsersService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(dto: CreateUserDto) {
+  // `userId` é o auth uid (sub do JWT). O perfil é criado com esse id; se já
+  // existir (reenvio do onboarding), atualiza — mantém a operação idempotente.
+  async create(userId: string, dto: CreateUserDto) {
     try {
-      return await this.prisma.user.create({ data: dto });
+      return await this.prisma.user.upsert({
+        where: { id: userId },
+        update: {
+          phoneNumber: dto.phoneNumber,
+          email: dto.email,
+          name: dto.name,
+        },
+        create: { id: userId, ...dto },
+      });
     } catch (e) {
       if (
         e instanceof Prisma.PrismaClientKnownRequestError &&
         e.code === 'P2002'
       ) {
         throw new ConflictException(
-          'Já existe usuário com esse telefone ou e-mail.',
+          'Esse telefone ou e-mail já está em uso por outra conta.',
         );
       }
       throw e;

@@ -3,7 +3,7 @@
 Organizador de vida pessoal (financeiro + tarefas + agenda) via WhatsApp e painel web.
 Backend em **NestJS + Prisma + Supabase (Postgres)**.
 
-## Fase atual: 1 — Backend core (sem WhatsApp/IA)
+## Fases concluídas: 1 (backend core) e 2 (consumido pelo web em `../frontend`)
 
 Módulos implementados: `UsersModule`, `FinanceModule` (categorias/despesas/receitas),
 `TasksModule`, `AuthModule` (validação de JWT do Supabase). `WhatsappModule` e `AiModule`
@@ -13,21 +13,27 @@ existem como placeholders (Fases 3 e 4).
 
 ```bash
 npm install
-cp .env.example .env   # preencha DATABASE_URL, DIRECT_URL e SUPABASE_JWT_SECRET
+cp .env.example .env   # preencha DATABASE_URL, DIRECT_URL e SUPABASE_URL
 npm run prisma:generate
-npm run prisma:migrate  # aplica as migrations (init + enable_rls) no Supabase
+npm run prisma:migrate  # aplica as migrations no Supabase
 ```
+
+**Auth por JWKS/ES256 — sem segredo compartilhado.** O projeto Supabase usa JWT Signing
+Keys assimétricas (ECC P-256). A strategy valida o JWT buscando a chave pública em
+`${SUPABASE_URL}/auth/v1/.well-known/jwks.json` (por isso o `.env` precisa de `SUPABASE_URL`,
+não mais de `SUPABASE_JWT_SECRET`, que foi removido).
 
 ### Migrations já versionadas
 
 - `20260701000000_init` — cria todas as tabelas/enums/índices.
 - `20260701000100_enable_rls` — habilita RLS em `expenses`, `incomes`, `tasks` e
   `whatsapp_messages`, escopando por `auth.uid() = user_id`.
+- `20260702000000_add_task_has_time` — adiciona `tasks.has_time` (tarefa de dia inteiro
+  vs. compromisso com horário).
 
-Ambas já existem em `prisma/migrations`. Depois de preencher o `.env`, rodar
-`npm run prisma:migrate` (ou `prisma migrate deploy` em produção) aplica as duas em
-ordem. Ver o cabeçalho de `enable_rls/migration.sql` para o caveat sobre `FORCE RLS`
-e `BYPASSRLS`.
+Todas já existem em `prisma/migrations`. Depois de preencher o `.env`, rodar
+`npm run prisma:migrate` (ou `prisma migrate deploy` em produção) aplica-as em ordem. Ver o
+cabeçalho de `enable_rls/migration.sql` para o caveat sobre `FORCE RLS` e `BYPASSRLS`.
 
 ## Rodar
 
@@ -40,14 +46,14 @@ npm test                # testes unitários (parsing + cálculo financeiro)
 
 | Método | Rota                | Descrição                          |
 | ------ | ------------------- | ---------------------------------- |
-| POST   | `/api/users`        | Cria perfil do usuário             |
+| POST   | `/api/users`        | Cria/atualiza perfil (id = auth uid) |
 | GET    | `/api/users/me`     | Perfil autenticado                 |
 | PATCH  | `/api/users/me`     | Atualiza perfil                    |
 | DELETE | `/api/users/me`     | Exclusão completa (LGPD)           |
 | CRUD   | `/api/categories`   | Categorias (despesa/receita)       |
 | CRUD   | `/api/expenses`     | Despesas                           |
 | CRUD   | `/api/incomes`      | Receitas                           |
-| CRUD   | `/api/tasks`        | Tarefas (com recorrência)          |
+| CRUD   | `/api/tasks`        | Tarefas (recorrência + `hasTime`)  |
 
 ## Modelo de dados
 

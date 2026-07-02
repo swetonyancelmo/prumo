@@ -1,0 +1,158 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-figtree);
+  --font-mono: var(--font-geist-mono);
+  --font-heading: var(--font-bricolage);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) * 0.55);
+  --radius-md: calc(var(--radius) * 0.75);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.35);
+  --radius-2xl: calc(var(--radius) * 1.7);
+  --radius-3xl: calc(var(--radius) * 2.1);
+  --radius-4xl: calc(var(--radius) * 2.5);
+}
+
+/*
+  Ordenai — direção "caderno de organização que respira".
+  Névoa (fundo lilás frio) · Tinta (quase-preto quente) · Orquídea (marca)
+  Menta (receitas/positivo) · Coral (alerta/vencimento).
+*/
+:root {
+  --radius: 1rem;
+
+  --background: #f3f2f7; /* Névoa */
+  --foreground: #2b2a33; /* Tinta */
+
+  --card: #ffffff;
+  --card-foreground: #2b2a33;
+  --popover: #ffffff;
+  --popover-foreground: #2b2a33;
+
+  --primary: #6c5ce0; /* Orquídea */
+  --primary-foreground: #ffffff;
+
+  --secondary: #edebf7;
+  --secondary-foreground: #4a3f86;
+
+  --muted: #ecebf1;
+  --muted-foreground: #78748a;
+
+  --accent: #edebf7;
+  --accent-foreground: #4a3f86;
+
+  --success: #2fa98c; /* Menta */
+  --success-foreground: #ffffff;
+
+  --destructive: #f2765c; /* Coral */
+
+  --border: #e4e2ec; /* Nuvem */
+  --input: #e4e2ec;
+  --ring: #6c5ce0;
+
+  /* Categorias — paleta categórica calorosa, harmoniza com a Orquídea. */
+  --chart-1: #6c5ce0; /* orquídea */
+  --chart-2: #2fa98c; /* menta */
+  --chart-3: #f2765c; /* coral */
+  --chart-4: #eaa72c; /* dourado */
+  --chart-5: #4c8dde; /* azul sereno */
+
+  --sidebar: #ffffff;
+  --sidebar-foreground: #2b2a33;
+  --sidebar-primary: #6c5ce0;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #edebf7;
+  --sidebar-accent-foreground: #4a3f86;
+  --sidebar-border: #eceaf2;
+  --sidebar-ring: #6c5ce0;
+}
+
+.dark {
+  --background: #1a1922;
+  --foreground: #ecebf1;
+  --card: #232230;
+  --card-foreground: #ecebf1;
+  --popover: #232230;
+  --popover-foreground: #ecebf1;
+  --primary: #8b7cf0;
+  --primary-foreground: #1a1922;
+  --secondary: #2e2c3d;
+  --secondary-foreground: #ecebf1;
+  --muted: #2e2c3d;
+  --muted-foreground: #a29fb5;
+  --accent: #2e2c3d;
+  --accent-foreground: #ecebf1;
+  --success: #3fbf9f;
+  --success-foreground: #10231d;
+  --destructive: #f2765c;
+  --border: #ffffff1a;
+  --input: #ffffff26;
+  --ring: #8b7cf0;
+  --chart-1: #8b7cf0;
+  --chart-2: #3fbf9f;
+  --chart-3: #f2765c;
+  --chart-4: #eaa72c;
+  --chart-5: #6ba3e6;
+  --sidebar: #232230;
+  --sidebar-foreground: #ecebf1;
+  --sidebar-primary: #8b7cf0;
+  --sidebar-primary-foreground: #1a1922;
+  --sidebar-accent: #2e2c3d;
+  --sidebar-accent-foreground: #ecebf1;
+  --sidebar-border: #ffffff14;
+  --sidebar-ring: #8b7cf0;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  html {
+    @apply font-sans;
+  }
+  h1,
+  h2,
+  h3 {
+    @apply font-heading;
+  }
+}

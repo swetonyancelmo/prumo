@@ -13,6 +13,7 @@ export class TasksService {
         userId,
         description: dto.description,
         dueDate: dto.dueDate,
+        hasTime: dto.hasTime ?? false,
         isRecurring: dto.isRecurring ?? false,
         recurrenceRule: dto.recurrenceRule,
         source: 'web',

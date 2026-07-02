@@ -20,9 +20,11 @@ export class UsersController {
   constructor(private readonly users: UsersService) {}
 
   // Cria o perfil de aplicação vinculado à conta autenticada do Supabase.
+  // O id do perfil é sempre o `sub` do JWT (auth uid) — é por ele que todas as
+  // queries são escopadas e que o /users/me localiza o perfil.
   @Post()
-  create(@Body() dto: CreateUserDto) {
-    return this.users.create(dto);
+  create(@CurrentUser() user: AuthUser, @Body() dto: CreateUserDto) {
+    return this.users.create(user.id, dto);
   }
 
   @Get('me')

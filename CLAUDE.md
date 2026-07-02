@@ -84,9 +84,10 @@ não alimentação") e para auditoria.
 
 ## Roadmap de fases
 
-1. **Backend core sem WhatsApp**: modelagem do banco, CRUD via API REST/GraphQL,
+1. **Backend core sem WhatsApp** ✅ **concluída**: modelagem do banco, CRUD via API REST,
    autenticação (Supabase Auth)
-2. **Web mínimo**: login, lista de despesas/tarefas, formulário manual (Next.js)
+2. **Web mínimo** ✅ **concluída**: login, dashboard, listas de despesas/receitas/tarefas,
+   formulário manual (Next.js)
 3. **Integração WhatsApp sem IA**: webhook (Evolution API local) recebendo mensagem,
    salvando raw, respondendo "recebi" — validar toda a infra (fila, webhook) isolada
 4. **IA parsing**: Claude API com tool use extraindo JSON estruturado, salvando no
@@ -152,3 +153,52 @@ Registradas em 2026-07-01. Estas são decisões efetivadas, não mais rascunho.
 ### LGPD
 - `DELETE /api/users/me` remove o usuário com cascata (Prisma `onDelete: Cascade`) em
   despesas/receitas/tarefas/mensagens. Export de dados fica para fase posterior.
+
+### Correção pós-Fase 1 (bug de vínculo do perfil)
+- `POST /api/users` criava o perfil com `id` aleatório, sem vincular ao `sub` do JWT.
+  Como tudo é escopado por `auth uid` e `GET /users/me` busca por ele, o perfil ficava
+  órfão (404 eterno). **Corrigido**: o endpoint agora usa `@CurrentUser()` e o service faz
+  `upsert` com `id = userId` (auth uid) — idempotente no reenvio do onboarding. O `id` da
+  tabela `users` **é** o auth uid do Supabase.
+
+## Decisões tomadas — Fase 2 (frontend web)
+
+Registradas em 2026-07-02. Efetivadas.
+
+### Stack e estrutura
+- **Next.js 16 (App Router) + Tailwind v4 + shadcn/ui** em `frontend/`. shadcn com base
+  **`base` (Base UI)**, não Radix — componentes usam a prop **`render`** (não `asChild`),
+  ícones **lucide**. Fontes via `next/font`: **Bricolage Grotesque** (títulos) + **Figtree**
+  (corpo). Tokens de tema (paleta) como CSS variables em `src/app/globals.css`.
+- **Next 16 tem breaking changes** (ver `frontend/AGENTS.md`): Middleware virou `proxy.js`;
+  `cookies()`/`params` são async; ESLint com `react-hooks/set-state-in-effect` como erro.
+  Por isso a **auth é client-side** (sem proxy/cookies de servidor): sessão no navegador via
+  `@supabase/supabase-js`, guard num layout client que redireciona.
+
+### Autenticação e acesso a dados
+- O frontend usa o **Supabase só para auth** (login/logout e obter o access token). **Nenhuma
+  query de dados passa pelo supabase-js** — tudo vai para a **API NestJS** com o JWT no header
+  `Authorization: Bearer` (wrapper em `src/lib/api.ts`). Casa com o RLS: o front nunca acessa
+  o Postgres direto.
+- Variáveis `NEXT_PUBLIC_*` (URL do Supabase, chave **publishable/anon** pública, URL da API).
+  Só chaves públicas no front — segurança real é RLS + validação de JWT no backend.
+- **Onboarding**: como `expenses/incomes/tasks` têm FK para `users` e a conta é WhatsApp-first,
+  após o primeiro login a tela `/onboarding` cria o perfil com **telefone (E.164)** via
+  `POST /api/users`. `GET /users/me` = 404 dispara o onboarding.
+
+### Design
+- Direção **"caderno de organização que respira"** (não dashboard bancário). Elemento de
+  assinatura: a **"aba de categoria"** (retângulo arredondado colorido na borda esquerda de
+  itens/cartões), repetida em despesas, receitas e tarefas (nas tarefas, colore por urgência).
+- Dinheiro exibido em `tabular-nums`; agregação do dashboard feita **em centavos** (espelha o
+  backend). `Decimal` do Prisma chega como **string** — sempre passar por `parseAmount`.
+- **Datas são dia de calendário**: inputs de data são ancorados ao **meio-dia local** ao
+  serializar para ISO (`dateInputToISO`), evitando off-by-one em fusos negativos (UTC−3).
+
+### Agenda = Tarefas com horário (decisão de produto)
+- Não criamos entidade `events` separada. `tasks.hasTime` (migration `add_task_has_time`)
+  indica se a hora em `dueDate` é significativa: `false` = tarefa de dia inteiro; `true` =
+  compromisso/agenda. Uma consulta médica é uma `task` com `dueDate` + `hasTime=true`. A
+  visão de calendário (Fase 5–6) lê as mesmas `tasks`; a extração da IA (Fase 4) produz
+  `{ description, dueDate, hasTime }` de uma mensagem só. Separar em `events` só se surgir
+  necessidade de local/duração/participantes/integração com calendários externos.
