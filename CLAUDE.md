@@ -1,4 +1,4 @@
-# Projeto: [Nome do SaaS] — Organizador de Vida Pessoal via WhatsApp
+# Projeto: OrdenAI — Organizador de Vida Pessoal via WhatsApp
 
 ## Visão geral
 
@@ -17,7 +17,11 @@ Exemplo de fluxo:
 ## Stack decidida
 
 - **Backend**: NestJS (TypeScript)
-- **Banco de dados**: Supabase (Postgres gerenciado + Auth + Row Level Security)
+- **Banco de dados — dev**: Postgres 16 em **Docker local** (`docker-compose.yml` na raiz).
+  Ver "Decisões tomadas — banco local em Docker".
+- **Banco de dados — produção**: Supabase (Postgres gerenciado + Row Level Security)
+- **Auth**: Supabase Auth (JWT via JWKS) — **em todos os ambientes**, inclusive com o
+  banco local. Só o Postgres saiu do Supabase em dev; o login não.
 - **Frontend web**: Next.js + Tailwind + shadcn/ui
 - **Fila assíncrona**: Redis + BullMQ (processar mensagens do WhatsApp fora do ciclo do webhook)
 - **IA**: Claude API (Anthropic), usando *tool use* para extração estruturada — não usar
@@ -161,6 +165,35 @@ Registradas em 2026-07-01. Estas são decisões efetivadas, não mais rascunho.
   órfão (404 eterno). **Corrigido**: o endpoint agora usa `@CurrentUser()` e o service faz
   `upsert` com `id = userId` (auth uid) — idempotente no reenvio do onboarding. O `id` da
   tabela `users` **é** o auth uid do Supabase.
+
+## Decisões tomadas — banco local em Docker
+
+Registradas em 2026-07-15. Efetivadas. Substitui o Supabase **como banco de desenvolvimento**.
+
+- **`docker-compose.yml` na raiz** (não em `backend/`): a infra é do repo, não de um app só.
+  Sobe `postgres:16-alpine` como `ordenai-postgres` na porta 5432, credenciais/base
+  `ordenai`/`ordenai_dev`/`ordenai`, volume nomeado `ordenai_postgres_data`, healthcheck com
+  `pg_isready`. `TZ=America/Sao_Paulo` fixado no container porque os relatórios agregam em
+  horário local do processo — sem isso, local e produção divergiriam.
+- **Sem pooler local**: `DATABASE_URL` e `DIRECT_URL` apontam ambas para 5432. A distinção
+  (6543 pooled / 5432 direct) só existe no Supabase e continua documentada no `.env.example`.
+- **Auth continua no Supabase.** Migrar o banco NÃO removeu a dependência do Supabase: o
+  backend ainda valida JWT via JWKS e o front ainda faz login lá. `users.id` continua sendo
+  o auth uid do Supabase. Um `.env` de dev ainda precisa de `SUPABASE_URL`.
+- **Shim de `auth.uid()` em vez de migration condicional.** A migration `enable_rls` usa
+  `auth.uid()`, que não existe em Postgres puro — ela quebraria o `prisma migrate` local.
+  Em vez de tornar a migration condicional (o que faria o histórico divergir entre
+  ambientes, exatamente o que `prisma migrate` evita), o **ambiente local imita o Supabase**:
+  `docker/postgres/init/01-supabase-auth-shim.sql` cria o schema `auth` com `uid()`/`role()`
+  lendo as claims de `current_setting('request.jwt.claims')`. As migrations ficam idênticas
+  em local e produção.
+- **Init scripts descrevem o ambiente, não o schema.** `docker/postgres/init/` só recebe o
+  que o Supabase já provê de fábrica. Tabela/coluna/índice é sempre `prisma migrate`. Esses
+  scripts rodam **só com o volume vazio** — mudá-los exige `docker compose down -v`.
+- **RLS local se comporta como Supabase**: sem PostgREST injetando claims, `auth.uid()` é
+  NULL e as policies negam tudo — igual a um usuário não autenticado. O backend não é
+  afetado porque o Prisma conecta como superusuário, que ignora RLS (inclusive `FORCE`).
+  Verificado: insert/select/cascata via Prisma passam com as policies ativas.
 
 ## Decisões tomadas — Fase 2 (frontend web)
 

@@ -1,7 +1,10 @@
 # Ordenai — Backend
 
 Organizador de vida pessoal (financeiro + tarefas + agenda) via WhatsApp e painel web.
-Backend em **NestJS + Prisma + Supabase (Postgres)**.
+Backend em **NestJS + Prisma + Postgres**.
+
+- **Banco (dev)**: Postgres 16 em Docker, na raiz do repo (`docker compose up -d`).
+- **Auth**: continua no **Supabase** (validação de JWT via JWKS). Só o banco saiu de lá.
 
 ## Fases concluídas: 1 (backend core) e 2 (consumido pelo web em `../frontend`)
 
@@ -13,11 +16,40 @@ Módulos implementados: `UsersModule`, `FinanceModule` (categorias/despesas/rece
 ## Setup
 
 ```bash
+# 1. Sobe o Postgres local (na RAIZ do repo, não em backend/)
+cd .. && docker compose up -d && cd backend
+
+# 2. Backend
 npm install
-cp .env.example .env   # preencha DATABASE_URL, DIRECT_URL e SUPABASE_URL
+cp .env.example .env   # DATABASE_URL/DIRECT_URL já vêm apontando pro Docker; preencha SUPABASE_URL
 npm run prisma:generate
-npm run prisma:migrate  # aplica as migrations no Supabase
+npm run prisma:migrate  # aplica as migrations no Postgres local
 ```
+
+### Banco local em Docker
+
+O `docker-compose.yml` da raiz sobe um **Postgres 16** (`ordenai-postgres`, porta 5432,
+usuário/senha/base `ordenai`/`ordenai_dev`/`ordenai`, fuso `America/Sao_Paulo`). Os dados
+ficam no volume `ordenai_postgres_data` e sobrevivem a `docker compose down`.
+
+```bash
+docker compose up -d      # sobe
+docker compose down       # para (mantém os dados)
+docker compose down -v    # para e APAGA o banco (recomeçar do zero)
+docker compose logs -f postgres
+docker exec -it ordenai-postgres psql -U ordenai -d ordenai   # shell SQL
+```
+
+**Shim de `auth.uid()`.** A migration `enable_rls` usa `auth.uid()`, função que só existe
+no Supabase — num Postgres puro ela quebraria o `prisma migrate`. Por isso
+`docker/postgres/init/01-supabase-auth-shim.sql` cria o schema `auth` e essa função na
+primeira subida do container, mantendo as migrations **idênticas** em local e produção.
+Como nada injeta claims de JWT localmente, `auth.uid()` retorna NULL e as policies negam
+tudo — igual ao Supabase para um usuário não autenticado. O backend não é afetado: o
+Prisma conecta como superusuário, que ignora RLS (inclusive `FORCE`).
+
+Como o script só roda com o volume vazio, editá-lo exige `docker compose down -v` para
+ter efeito.
 
 **Auth por JWKS/ES256 — sem segredo compartilhado.** O projeto Supabase usa JWT Signing
 Keys assimétricas (ECC P-256). A strategy valida o JWT buscando a chave pública em
@@ -32,7 +64,7 @@ não mais de `SUPABASE_JWT_SECRET`, que foi removido).
 - `20260702000000_add_task_has_time` — adiciona `tasks.has_time` (tarefa de dia inteiro
   vs. compromisso com horário).
 
-Todas já existem em `prisma/migrations`. Depois de preencher o `.env`, rodar
+Todas já existem em `prisma/migrations`. Com o container de pé e o `.env` preenchido,
 `npm run prisma:migrate` (ou `prisma migrate deploy` em produção) aplica-as em ordem. Ver o
 cabeçalho de `enable_rls/migration.sql` para o caveat sobre `FORCE RLS` e `BYPASSRLS`.
 
