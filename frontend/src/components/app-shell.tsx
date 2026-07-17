@@ -36,7 +36,7 @@ const NAV = [
 
 function useInitials() {
   const profile = useProfile();
-  return (profile.name ?? profile.phoneNumber).slice(0, 2).toUpperCase();
+  return (profile.name ?? profile.email ?? "PR").slice(0, 2).toUpperCase();
 }
 
 function useSignOut() {
@@ -119,7 +119,7 @@ function DesktopUserFooter() {
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-medium">{profile.name ?? "Você"}</p>
         <p className="truncate text-xs text-muted-foreground">
-          {profile.phoneNumber}
+          {profile.email ?? ""}
         </p>
       </div>
       <ThemeToggle />
@@ -159,7 +159,7 @@ function MobileAccountMenu() {
               {profile.name ?? "Você"}
             </p>
             <p className="truncate text-xs font-normal text-muted-foreground">
-              {profile.phoneNumber}
+              {profile.email ?? ""}
             </p>
           </DropdownMenuLabel>
         </DropdownMenuGroup>
@@ -183,7 +183,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         <Link href="/dashboard" className="flex items-center gap-2 px-2 py-1">
           <LogoMark />
           <span className="font-heading text-lg font-semibold tracking-tight">
-            OrdenAI
+            Prumo
           </span>
         </Link>
         <div className="flex-1">
@@ -197,7 +197,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         <Link href="/dashboard" className="flex items-center gap-2">
           <LogoMark className="size-7" />
           <span className="font-heading text-base font-semibold tracking-tight">
-            OrdenAI
+            Prumo
           </span>
         </Link>
         <div className="flex items-center gap-1">

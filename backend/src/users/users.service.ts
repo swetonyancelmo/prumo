@@ -19,7 +19,6 @@ export class UsersService {
       return await this.prisma.user.upsert({
         where: { id: userId },
         update: {
-          phoneNumber: dto.phoneNumber,
           email: dto.email,
           name: dto.name,
         },
@@ -31,7 +30,7 @@ export class UsersService {
         e.code === 'P2002'
       ) {
         throw new ConflictException(
-          'Esse telefone ou e-mail já está em uso por outra conta.',
+          'Esse e-mail já está em uso por outra conta.',
         );
       }
       throw e;
@@ -46,16 +45,12 @@ export class UsersService {
     return user;
   }
 
-  findByPhone(phoneNumber: string) {
-    return this.prisma.user.findUnique({ where: { phoneNumber } });
-  }
-
   async update(id: string, dto: UpdateUserDto) {
     await this.findById(id);
     return this.prisma.user.update({ where: { id }, data: dto });
   }
 
-  /** Exclusão completa (LGPD) — cascata remove despesas/receitas/tarefas/mensagens. */
+  /** Exclusão completa (LGPD) — cascata remove despesas/receitas/tarefas/categorias. */
   async remove(id: string) {
     await this.findById(id);
     await this.prisma.user.delete({ where: { id } });

@@ -2,24 +2,23 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import {
   ArrowRightIcon,
-  MessageCircleIcon,
   WalletIcon,
   CalendarCheckIcon,
   BarChart3Icon,
   LayoutDashboardIcon,
   ShieldCheckIcon,
+  TagIcon,
   SparklesIcon,
   type LucideIcon,
 } from "lucide-react";
 import { LandingNav } from "@/components/landing/landing-nav";
-import { WhatsappDemo } from "@/components/landing/whatsapp-demo";
 import { Logo } from "@/components/logo";
 import { Button } from "@/components/ui/button";
 
 export const metadata: Metadata = {
-  title: "OrdenAI — organize sua vida pelo WhatsApp",
+  title: { absolute: "Prumo — suas finanças e tarefas, organizadas" },
   description:
-    "Registre gastos, receitas e tarefas mandando uma mensagem no WhatsApp. A IA do OrdenAI entende, organiza e te devolve tudo pronto — com painel web para relatórios.",
+    "Um painel web tranquilo para registrar despesas, receitas e tarefas, organizar por categoria e acompanhar o mês com relatórios claros. Sem planilha, sem complicação.",
 };
 
 export default function LandingPage() {
@@ -33,15 +32,15 @@ export default function LandingPage() {
           <div>
             <span className="inline-flex items-center gap-1.5 rounded-full bg-secondary px-3 py-1 text-sm font-medium text-secondary-foreground">
               <SparklesIcon className="size-3.5" />
-              Organização por WhatsApp
+              Organização pessoal
             </span>
             <h1 className="mt-5 text-balance font-heading text-4xl font-semibold leading-[1.1] tracking-tight md:text-5xl">
-              Sua vida organizada no ritmo de uma conversa.
+              Suas finanças e tarefas, no mesmo lugar.
             </h1>
             <p className="mt-5 max-w-md text-lg text-muted-foreground">
-              Registre gastos, receitas e tarefas mandando uma mensagem. O
-              OrdenAI entende, organiza e te devolve tudo pronto — com um painel
-              web para enxergar o mês inteiro.
+              O Prumo é um painel web tranquilo para registrar gastos, receitas
+              e tarefas, organizar por categoria e enxergar o mês inteiro — com
+              relatórios que fazem sentido.
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-3">
               <Button
@@ -56,18 +55,18 @@ export default function LandingPage() {
                 size="lg"
                 variant="ghost"
                 nativeButton={false}
-                render={<Link href="#como-funciona" />}
+                render={<Link href="#recursos" />}
               >
-                Ver como funciona
+                Ver recursos
               </Button>
             </div>
             <p className="mt-4 text-sm text-muted-foreground">
-              Sem planilha. Sem formulário. Só uma mensagem.
+              Grátis para começar. Seus dados são só seus.
             </p>
           </div>
 
           <div className="flex justify-center md:justify-end">
-            <WhatsappDemo />
+            <PanelPreview />
           </div>
         </section>
 
@@ -79,65 +78,65 @@ export default function LandingPage() {
           <div className="mx-auto w-full max-w-6xl px-4 md:px-8">
             <SectionTitle
               eyebrow="Como funciona"
-              title="Três passos — e você nunca mais esquece um gasto"
+              title="Três passos — e o mês para de ser um mistério"
             />
             <div className="mt-10 grid gap-6 md:grid-cols-3">
               <Step
                 n={1}
-                title="Mande uma mensagem"
-                text="“Gastei 30 no mercado” ou “consulta médica quarta às 14h”. Do jeito que você fala."
+                title="Registre"
+                text="Lançou um gasto, recebeu um valor, lembrou de uma tarefa? Um formulário rápido e pronto."
               />
               <Step
                 n={2}
-                title="A IA entende"
-                text="Ela extrai valor, categoria, data e tipo — despesa, receita ou tarefa. Nada de preencher campos."
+                title="Organize"
+                text="Categorias para o dinheiro, vencimento e horário para as tarefas. Cada coisa no seu lugar."
               />
               <Step
                 n={3}
-                title="Confere e pronto"
-                text="O OrdenAI devolve o que entendeu para você confirmar. Errou? É só corrigir por mensagem."
+                title="Acompanhe"
+                text="O painel soma tudo e os relatórios mostram para onde o dinheiro foi — semana, mês ou ano."
               />
             </div>
           </div>
         </section>
 
         {/* Recursos */}
-        <section className="py-16 md:py-20">
+        <section id="recursos" className="py-16 md:py-20">
           <div className="mx-auto w-full max-w-6xl px-4 md:px-8">
             <SectionTitle
               eyebrow="O que ele faz"
-              title="Um assistente para o dinheiro e o dia a dia"
+              title="Simples para o dia a dia, completo quando você precisa"
             />
             <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
               <Feature
                 icon={WalletIcon}
-                title="Finanças no automático"
-                text="Despesas e receitas organizadas por categoria, com o saldo do mês sempre à mão."
+                title="Finanças organizadas"
+                text="Despesas e receitas por categoria, com o saldo do mês sempre à mão."
               />
               <Feature
                 icon={CalendarCheckIcon}
                 title="Tarefas e agenda"
-                text="Lembretes com vencimento e horário, tarefas recorrentes — compromissos e afazeres no mesmo lugar."
+                text="Lembretes com vencimento e horário, tarefas recorrentes — afazeres e compromissos juntos."
               />
               <Feature
                 icon={BarChart3Icon}
                 title="Relatórios claros"
-                text="Veja para onde vai seu dinheiro no mês, por categoria, sem abrir planilha nenhuma."
+                text="Semana, mês, trimestre ou ano: veja a evolução e a variação por categoria, sem planilha."
               />
               <Feature
-                icon={MessageCircleIcon}
-                title="Tudo pelo WhatsApp"
-                text="Onde você já conversa todo dia. Sem instalar mais um app, sem mais uma senha para lembrar."
+                icon={TagIcon}
+                title="Categorias do seu jeito"
+                text="Crie as categorias que fazem sentido para você, na hora de lançar. Nada de listas engessadas."
               />
               <Feature
                 icon={LayoutDashboardIcon}
-                title="Painel web"
-                text="Quando quiser o detalhe: edite lançamentos, filtre e enxergue a visão completa do mês."
+                title="Painel que respira"
+                text="Um dashboard limpo, no claro ou no escuro, que mostra o essencial sem te afogar em números."
               />
               <Feature
                 icon={ShieldCheckIcon}
                 title="Seus dados, suas regras"
-                text="Pensado com a LGPD desde o início: exporte ou apague todos os seus dados quando quiser."
+                text="Pensado com a LGPD desde o início: apague todos os seus dados quando quiser, sem burocracia."
               />
             </div>
           </div>
@@ -150,8 +149,8 @@ export default function LandingPage() {
               Comece a se organizar hoje
             </h2>
             <p className="max-w-md text-primary-foreground/80">
-              Crie sua conta em segundos e mande a primeira mensagem. O resto o
-              OrdenAI faz por você.
+              Crie sua conta em segundos e faça o primeiro lançamento. Leva menos
+              tempo do que procurar a planilha.
             </p>
             <Button
               size="lg"
@@ -169,21 +168,67 @@ export default function LandingPage() {
       <footer className="border-t py-8">
         <div className="mx-auto flex w-full max-w-6xl flex-col items-center justify-between gap-4 px-4 text-sm text-muted-foreground md:flex-row md:px-8">
           <Logo className="[&_span]:text-base" markClassName="size-6" />
-          <p>Organização pessoal no ritmo de uma conversa.</p>
-          <p>© {new Date().getFullYear()} OrdenAI</p>
+          <p>Suas finanças e tarefas, organizadas.</p>
+          <p>© {new Date().getFullYear()} Prumo</p>
         </div>
       </footer>
     </div>
   );
 }
 
-function SectionTitle({
-  eyebrow,
+/**
+ * Prévia estática do painel — mostra o elemento-assinatura do produto: a "aba
+ * de categoria" (retângulo colorido na borda esquerda de cada item).
+ */
+function PanelPreview() {
+  return (
+    <div className="w-full max-w-sm rounded-2xl border bg-card p-5 shadow-[0_12px_40px_rgba(43,42,51,0.10)]">
+      <div className="flex items-baseline justify-between">
+        <p className="text-sm font-medium text-muted-foreground">Este mês</p>
+        <p className="font-heading text-2xl font-semibold tabular-nums">
+          R$ 2.480
+        </p>
+      </div>
+      <div className="mt-4 space-y-2.5">
+        <PreviewRow tab="bg-rose-400" title="Mercado" meta="Alimentação · hoje" value="− R$ 132,90" />
+        <PreviewRow tab="bg-emerald-400" title="Salário" meta="Receita · 05/07" value="+ R$ 4.200,00" />
+        <PreviewRow tab="bg-sky-400" title="Consulta médica" meta="Amanhã · 14h" value="" task />
+        <PreviewRow tab="bg-amber-400" title="Conta de luz" meta="Vence sexta" value="− R$ 189,00" />
+      </div>
+    </div>
+  );
+}
+
+function PreviewRow({
+  tab,
   title,
+  meta,
+  value,
+  task = false,
 }: {
-  eyebrow: string;
+  tab: string;
   title: string;
+  meta: string;
+  value: string;
+  task?: boolean;
 }) {
+  return (
+    <div className="flex items-center gap-3 rounded-xl border bg-background/60 px-3 py-2.5">
+      <span className={`h-8 w-1.5 shrink-0 rounded-full ${tab}`} />
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-medium">{title}</p>
+        <p className="truncate text-xs text-muted-foreground">{meta}</p>
+      </div>
+      {task ? (
+        <span className="size-4 shrink-0 rounded-md border-2 border-muted-foreground/40" />
+      ) : (
+        <p className="shrink-0 text-sm font-medium tabular-nums">{value}</p>
+      )}
+    </div>
+  );
+}
+
+function SectionTitle({ eyebrow, title }: { eyebrow: string; title: string }) {
   return (
     <div className="max-w-2xl">
       <p className="text-sm font-semibold uppercase tracking-wide text-primary">

@@ -1,6 +1,6 @@
-# OrdenAI — Frontend
+# Prumo — Frontend
 
-Painel web do OrdenAI (Next.js 16 + Tailwind v4 + shadcn/ui, base UI).
+Painel web do Prumo (Next.js 16 + Tailwind v4 + shadcn/ui, base UI).
 Consome a API NestJS em `../backend` e autentica via Supabase Auth (JWT ES256).
 
 ## Rodando localmente
@@ -8,7 +8,7 @@ Consome a API NestJS em `../backend` e autentica via Supabase Auth (JWT ES256).
 ```bash
 npm install
 cp .env.local.example .env.local   # preencha as variáveis
-npm run dev                        # http://localhost:3000
+npm run dev                        # http://localhost:3001
 ```
 
 Suba o backend (`../backend`) em paralelo — por padrão o front espera a API em
@@ -28,7 +28,7 @@ assinatura. Tokens em `src/app/globals.css`.
 ## Telas
 
 - `/` — **landing page** pública (marketing, SEO); nav ciente de sessão
-- `/login` e `/onboarding` (cria o perfil com telefone — WhatsApp-first)
+- `/login` e `/onboarding` (cria o perfil — só o nome)
 - `/dashboard` — saldo do mês, gastos por categoria, prévia de tarefas
 - `/financas` — despesas e receitas do mês (criar/editar/excluir)
 - `/relatorios` — relatórios financeiros por período (semana → ano): KPIs com variação,

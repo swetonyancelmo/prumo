@@ -1,24 +1,22 @@
+import Image from "next/image";
 import { cn } from "@/lib/utils";
 
-/** Marca do OrdenAI: squircle Orquídea com um "check" — o caderno organizado. */
+/**
+ * Marca do Prumo: o "prumo" (fio de prumo) roxo num tile branco arredondado.
+ * O tile funciona como chip sobre qualquer fundo (claro/escuro), sem virar um
+ * quadrado branco solto. Fonte em assets/brand/prumo-logo.png; o PNG servido
+ * (public/prumo-mark.png) é gerado a partir dela.
+ */
 export function LogoMark({ className }: { className?: string }) {
   return (
-    <svg
-      viewBox="0 0 32 32"
-      className={cn("size-8", className)}
-      role="img"
-      aria-label="OrdenAI"
-    >
-      <rect width="32" height="32" rx="10" fill="var(--primary)" />
-      <path
-        d="M9 16.8l4.2 4.2L23 11.4"
-        fill="none"
-        stroke="var(--primary-foreground)"
-        strokeWidth="2.8"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
+    <Image
+      src="/prumo-mark.png"
+      alt="Prumo"
+      width={40}
+      height={40}
+      className={cn("size-8 rounded-[22%]", className)}
+      priority
+    />
   );
 }
 
@@ -33,7 +31,7 @@ export function Logo({
     <span className={cn("flex items-center gap-2", className)}>
       <LogoMark className={markClassName} />
       <span className="font-heading text-xl font-semibold tracking-tight">
-        OrdenAI
+        Prumo
       </span>
     </span>
   );

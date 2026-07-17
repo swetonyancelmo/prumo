@@ -12,7 +12,7 @@ export function LandingNav() {
   return (
     <header className="sticky top-0 z-20 border-b border-border/60 bg-background/80 backdrop-blur">
       <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-3 md:px-8">
-        <Link href="/" aria-label="OrdenAI — início">
+        <Link href="/" aria-label="Prumo — início">
           <Logo />
         </Link>
         <div className="flex items-center gap-1.5">

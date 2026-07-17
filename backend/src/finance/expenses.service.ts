@@ -31,7 +31,6 @@ export class ExpensesService {
         categoryId: dto.categoryId,
         description: dto.description,
         occurredAt: dto.occurredAt ?? new Date(),
-        source: 'web',
       },
     });
   }

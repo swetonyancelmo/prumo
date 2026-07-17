@@ -13,7 +13,6 @@ export class IncomesService {
         amount: dto.amount,
         description: dto.description,
         receivedAt: dto.receivedAt ?? new Date(),
-        source: 'web',
       },
     });
   }

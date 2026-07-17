@@ -12,12 +12,7 @@ import { Splash } from "@/components/splash";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
-import {
-  Field,
-  FieldGroup,
-  FieldLabel,
-  FieldDescription,
-} from "@/components/ui/field";
+import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { toast } from "sonner";
 
 export default function OnboardingPage() {
@@ -25,7 +20,6 @@ export default function OnboardingPage() {
   const { session, loading } = useAuth();
   const [checking, setChecking] = useState(true);
   const [name, setName] = useState("");
-  const [phone, setPhone] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -63,11 +57,10 @@ export default function OnboardingPage() {
     setSubmitting(true);
     try {
       await api.post<UserProfile>("/users", {
-        phoneNumber: phone.replace(/[\s()-]/g, ""),
         name: name.trim() || undefined,
         email: session?.user.email ?? undefined,
       });
-      toast.success("Tudo pronto! Bem-vindo ao OrdenAI.");
+      toast.success("Tudo pronto! Bem-vindo ao Prumo.");
       router.replace("/dashboard");
     } catch (err) {
       const message =
@@ -90,7 +83,7 @@ export default function OnboardingPage() {
         <div className="mb-8 flex flex-col items-center gap-3 text-center">
           <Logo markClassName="size-10" className="gap-2.5 [&_span]:text-2xl" />
           <p className="text-balance text-muted-foreground">
-            Falta um passo: qual o WhatsApp que vai conversar com o OrdenAI?
+            Antes de começar: como você quer ser chamado?
           </p>
         </div>
 
@@ -98,31 +91,15 @@ export default function OnboardingPage() {
           <form onSubmit={handleSubmit}>
             <FieldGroup>
               <Field>
-                <FieldLabel htmlFor="name">Como te chamamos?</FieldLabel>
+                <FieldLabel htmlFor="name">Seu nome</FieldLabel>
                 <Input
                   id="name"
-                  placeholder="Seu nome"
+                  placeholder="Como te chamamos?"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   autoComplete="name"
+                  autoFocus
                 />
-              </Field>
-              <Field>
-                <FieldLabel htmlFor="phone">WhatsApp</FieldLabel>
-                <Input
-                  id="phone"
-                  type="tel"
-                  inputMode="tel"
-                  placeholder="+55 11 99999-8888"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  autoComplete="tel"
-                  required
-                />
-                <FieldDescription>
-                  Com DDI e DDD (formato internacional). É por aqui que você vai
-                  registrar gastos e tarefas por mensagem.
-                </FieldDescription>
               </Field>
               <Button type="submit" disabled={submitting} className="w-full">
                 {submitting ? (

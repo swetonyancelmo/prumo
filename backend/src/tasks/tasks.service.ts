@@ -16,7 +16,6 @@ export class TasksService {
         hasTime: dto.hasTime ?? false,
         isRecurring: dto.isRecurring ?? false,
         recurrenceRule: dto.recurrenceRule,
-        source: 'web',
       },
     });
   }

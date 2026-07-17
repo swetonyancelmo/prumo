@@ -1,17 +1,15 @@
-# OrdenAI — Backend
+# Prumo — Backend
 
-Organizador de vida pessoal (financeiro + tarefas + agenda) via WhatsApp e painel web.
+Organizador de vida pessoal (financeiro + tarefas) — **painel web, gestão manual**.
 Backend em **NestJS + Prisma + Postgres**.
 
 - **Banco (dev)**: Postgres 16 em Docker, na raiz do repo (`docker compose up -d`).
-- **Auth**: continua no **Supabase** (validação de JWT via JWKS). Só o banco saiu de lá.
+- **Auth**: **Supabase** (validação de JWT via JWKS). Só o banco saiu de lá.
 
-## Fases concluídas: 1 (backend core) e 2 (consumido pelo web em `../frontend`)
+## Módulos
 
-Módulos implementados: `UsersModule`, `FinanceModule` (categorias/despesas/receitas),
-`TasksModule`, `ReportsModule` (relatórios financeiros — Fase 5 adiantada), `AuthModule`
-(validação de JWT do Supabase). `WhatsappModule` e `AiModule` existem como placeholders
-(Fases 3 e 4).
+`UsersModule`, `FinanceModule` (categorias/despesas/receitas), `TasksModule`,
+`ReportsModule` (relatórios financeiros), `AuthModule` (validação de JWT do Supabase).
 
 ## Setup
 
@@ -63,6 +61,9 @@ não mais de `SUPABASE_JWT_SECRET`, que foi removido).
   `whatsapp_messages`, escopando por `auth.uid() = user_id`.
 - `20260702000000_add_task_has_time` — adiciona `tasks.has_time` (tarefa de dia inteiro
   vs. compromisso com horário).
+- `20260717000000_remove_whatsapp_and_phone` — pivot web-only: remove a tabela
+  `whatsapp_messages`, as colunas `phone_number`/`raw_message_id`/`source` e os enums
+  `EntrySource`/`MessageDirection`.
 
 Todas já existem em `prisma/migrations`. Com o container de pé e o `.env` preenchido,
 `npm run prisma:migrate` (ou `prisma migrate deploy` em produção) aplica-as em ordem. Ver o
@@ -94,10 +95,10 @@ npm test                # testes unitários (parsing + cálculo financeiro)
 `?period=week|month|quarter|semester|year&anchor=<ISO>` (âncora = qualquer dia do período;
 default hoje). Retorna `{ range, totals, previous, byCategory, series }` — totais, variação
 vs. período anterior, gasto por categoria e série por sub-período. Lógica pura e testada em
-`reports/reports.util.ts`; será reusado pelo WhatsApp na Fase 5. Cálculos em horário local —
-em produção fixar `TZ=America/Sao_Paulo`.
+`reports/reports.util.ts`. Cálculos em horário local — em produção fixar
+`TZ=America/Sao_Paulo`.
 
 ## Modelo de dados
 
 Ver `prisma/schema.prisma`. Valores monetários usam `Decimal(12,2)`. Deleção de usuário
-faz cascata em despesas/receitas/tarefas/mensagens.
+faz cascata em despesas/receitas/tarefas/categorias.

@@ -2,7 +2,7 @@ import { cn } from "@/lib/utils";
 import { categoryColor } from "@/lib/format";
 
 /**
- * Elemento de assinatura do OrdenAI: a "aba de categoria" — um retângulo
+ * Elemento de assinatura do Prumo: a "aba de categoria" — um retângulo
  * arredondado vertical, colorido pela categoria, encostado na borda esquerda
  * de itens de lista e cartões. É o "index tab" do fichário, repetido em
  * despesas, receitas e tarefas.

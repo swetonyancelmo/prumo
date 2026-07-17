@@ -19,9 +19,22 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "OrdenAI — seu dia organizado",
+  metadataBase: new URL("https://prumo.app"),
+  title: {
+    default: "Prumo — suas finanças e tarefas, organizadas",
+    template: "%s · Prumo",
+  },
   description:
-    "Organize finanças e tarefas no ritmo de uma conversa. Painel web do OrdenAI.",
+    "Painel web para registrar despesas, receitas e tarefas, organizar por categoria e acompanhar o mês com relatórios claros.",
+  applicationName: "Prumo",
+  openGraph: {
+    title: "Prumo — suas finanças e tarefas, organizadas",
+    description:
+      "Registre, organize e acompanhe finanças e tarefas num painel web tranquilo.",
+    siteName: "Prumo",
+    locale: "pt_BR",
+    type: "website",
+  },
 };
 
 export default function RootLayout({

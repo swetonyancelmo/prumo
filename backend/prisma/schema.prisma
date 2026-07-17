@@ -1,4 +1,4 @@
-// OrdenAI — schema do banco (Fase 1)
+// Prumo — schema do banco (Fase 1)
 // Modelo de dados conforme CLAUDE.md > "Modelo de dados".
 // Valores monetários usam Decimal(12,2) para precisão financeira.
 
@@ -21,32 +21,20 @@ enum CategoryType {
   receita
 }
 
-enum EntrySource {
-  whatsapp
-  web
-}
-
-enum MessageDirection {
-  inbound
-  outbound
-}
-
 // --------------------------------------------------------------------------
 // Modelos
 // --------------------------------------------------------------------------
 
 model User {
-  id          String   @id @default(uuid()) @db.Uuid
-  phoneNumber String   @unique @map("phone_number")
-  email       String?  @unique
-  name        String?
-  createdAt   DateTime @default(now()) @map("created_at")
+  id        String   @id @default(uuid()) @db.Uuid
+  email     String?  @unique
+  name      String?
+  createdAt DateTime @default(now()) @map("created_at")
 
-  categories       Category[]
-  expenses         Expense[]
-  incomes          Income[]
-  tasks            Task[]
-  whatsappMessages WhatsappMessage[]
+  categories Category[]
+  expenses   Expense[]
+  incomes    Income[]
+  tasks      Task[]
 
   @@map("users")
 }
@@ -67,19 +55,16 @@ model Category {
 }
 
 model Expense {
-  id           String      @id @default(uuid()) @db.Uuid
-  userId       String      @map("user_id") @db.Uuid
-  amount       Decimal     @db.Decimal(12, 2)
-  categoryId   String?     @map("category_id") @db.Uuid
-  description  String?
-  occurredAt   DateTime    @map("occurred_at")
-  source       EntrySource @default(web)
-  rawMessageId String?     @map("raw_message_id") @db.Uuid
-  createdAt    DateTime    @default(now()) @map("created_at")
+  id          String      @id @default(uuid()) @db.Uuid
+  userId      String      @map("user_id") @db.Uuid
+  amount      Decimal     @db.Decimal(12, 2)
+  categoryId  String?     @map("category_id") @db.Uuid
+  description String?
+  occurredAt  DateTime    @map("occurred_at")
+  createdAt   DateTime    @default(now()) @map("created_at")
 
-  user       User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  category   Category?        @relation(fields: [categoryId], references: [id], onDelete: SetNull)
-  rawMessage WhatsappMessage? @relation(fields: [rawMessageId], references: [id], onDelete: SetNull)
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
 
   @@index([userId, occurredAt])
   @@index([categoryId])
@@ -87,17 +72,14 @@ model Expense {
 }
 
 model Income {
-  id           String      @id @default(uuid()) @db.Uuid
-  userId       String      @map("user_id") @db.Uuid
-  amount       Decimal     @db.Decimal(12, 2)
-  description  String?
-  receivedAt   DateTime    @map("received_at")
-  source       EntrySource @default(web)
-  rawMessageId String?     @map("raw_message_id") @db.Uuid
-  createdAt    DateTime    @default(now()) @map("created_at")
+  id          String      @id @default(uuid()) @db.Uuid
+  userId      String      @map("user_id") @db.Uuid
+  amount      Decimal     @db.Decimal(12, 2)
+  description String?
+  receivedAt  DateTime    @map("received_at")
+  createdAt   DateTime    @default(now()) @map("created_at")
 
-  user       User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  rawMessage WhatsappMessage? @relation(fields: [rawMessageId], references: [id], onDelete: SetNull)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, receivedAt])
   @@map("incomes")
@@ -113,33 +95,12 @@ model Task {
   hasTime        Boolean     @default(false) @map("has_time")
   isRecurring    Boolean     @default(false) @map("is_recurring")
   recurrenceRule String?     @map("recurrence_rule")
-  isCompleted    Boolean     @default(false) @map("is_completed")
-  source         EntrySource @default(web)
-  rawMessageId   String?     @map("raw_message_id") @db.Uuid
-  createdAt      DateTime    @default(now()) @map("created_at")
+  isCompleted    Boolean   @default(false) @map("is_completed")
+  createdAt      DateTime  @default(now()) @map("created_at")
 
-  user       User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  rawMessage WhatsappMessage? @relation(fields: [rawMessageId], references: [id], onDelete: SetNull)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, dueDate])
   @@index([userId, isCompleted])
   @@map("tasks")
-}
-
-model WhatsappMessage {
-  id                 String           @id @default(uuid()) @db.Uuid
-  userId             String           @map("user_id") @db.Uuid
-  rawText            String           @map("raw_text")
-  direction          MessageDirection
-  processed          Boolean          @default(false)
-  aiExtractionResult Json?            @map("ai_extraction_result")
-  createdAt          DateTime         @default(now()) @map("created_at")
-
-  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  expenses Expense[]
-  incomes  Income[]
-  tasks    Task[]
-
-  @@index([userId, processed])
-  @@map("whatsapp_messages")
 }
