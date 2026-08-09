@@ -1,9 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { Suspense, useMemo, useState } from "react";
 import { PlusIcon, ListChecksIcon } from "lucide-react";
 import type { Task } from "@/lib/types";
 import { useResource } from "@/lib/use-resource";
+import { useShortcutFlag } from "@/lib/use-shortcut";
 import { api } from "@/lib/api";
 import { PageHeader } from "@/components/page-header";
 import { TaskRow } from "@/components/task-row";
@@ -22,8 +23,20 @@ import {
 import { toast } from "sonner";
 
 export default function TarefasPage() {
+  // O atalho do PWA (/tarefas?nova=1) chega pela query, e ler query obriga a
+  // um limite de Suspense.
+  return (
+    <Suspense fallback={null}>
+      <Tarefas />
+    </Suspense>
+  );
+}
+
+function Tarefas() {
   const tasks = useResource<Task[]>("/tasks");
-  const [dialogOpen, setDialogOpen] = useState(false);
+  // Atalho "Nova tarefa" do ícone do app: já abre o diálogo.
+  const fromShortcut = useShortcutFlag("nova");
+  const [dialogOpen, setDialogOpen] = useState(fromShortcut);
   const [editing, setEditing] = useState<Task | null>(null);
   const [deleting, setDeleting] = useState<Task | null>(null);
   const [togglingId, setTogglingId] = useState<string | null>(null);

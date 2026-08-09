@@ -1,9 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { Suspense, useMemo, useState } from "react";
 import { PlusIcon, WalletIcon } from "lucide-react";
 import type { Category, Expense, Income } from "@/lib/types";
 import { useResource } from "@/lib/use-resource";
+import { useShortcutFlag } from "@/lib/use-shortcut";
 import { api } from "@/lib/api";
 import { formatBRL, isSameMonth } from "@/lib/format";
 import { PageHeader } from "@/components/page-header";
@@ -39,11 +40,23 @@ type Deleting =
   | null;
 
 export default function FinancasPage() {
+  // O atalho do PWA (/financas?novo=1) chega pela query, e ler query obriga a
+  // um limite de Suspense.
+  return (
+    <Suspense fallback={null}>
+      <Financas />
+    </Suspense>
+  );
+}
+
+function Financas() {
   const expenses = useResource<Expense[]>("/expenses");
   const incomes = useResource<Income[]>("/incomes");
   const categories = useResource<Category[]>("/categories");
 
-  const [dialogOpen, setDialogOpen] = useState(false);
+  // Atalho "Novo lançamento" do ícone do app: já abre o diálogo.
+  const fromShortcut = useShortcutFlag("novo");
+  const [dialogOpen, setDialogOpen] = useState(fromShortcut);
   const [editing, setEditing] = useState<Editing>(null);
   const [deleting, setDeleting] = useState<Deleting>(null);
 

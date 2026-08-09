@@ -68,6 +68,8 @@ Estado atual: o núcleo web (cadastro, CRUD de finanças/tarefas, dashboard, rel
 - [x] **Relatórios**: `GET /api/reports` + `/relatorios` (semana→ano, gráficos, variação)
 - [x] **Relatório em PDF**: botão "Baixar PDF" em `/relatorios`, documento com a marca
 - [x] **Pronto para deploy**: Neon + Render + Vercel (`render.yaml`, `DEPLOY.md`)
+- [x] **PWA instalável**: manifest, ícones, atalhos e polimento de toque (ver
+      "Decisões tomadas — PWA e uso no celular")
 - [ ] **Recuperação de senha**: exige provedor de e-mail (Resend/similar). Hoje, quem
       esquece a senha não tem como recuperar a conta.
 - [ ] **Export de dados (LGPD)**: endpoint + botão que devolva TODOS os dados do
@@ -77,6 +79,9 @@ Estado atual: o núcleo web (cadastro, CRUD de finanças/tarefas, dashboard, rel
 - [ ] **Notificações de vencimento**: cron diário + canal (e-mail) — não há infra ainda.
 - [ ] **Gestão de categorias**: hoje só dá para criar categoria inline no lançamento;
       falta renomear/excluir.
+- [ ] **Offline de verdade**: o app é instalável, mas todo dado vem da API. Exigiria
+      service worker com cache + fila de lançamentos feitos sem rede e resolução de
+      conflito. Ver "Decisões tomadas — PWA e uso no celular".
 
 ## Convenções para o Claude Code
 
@@ -269,6 +274,59 @@ Registrado em 2026-08-09. Documento em `frontend/src/lib/report-pdf.tsx`.
 - Gráficos com **shadcn Chart (Recharts)**, reagindo ao dark mode via as `--chart-1..5`.
   A paleta categórica foi validada pela skill `dataviz` (daltonismo OK; contraste de algumas
   cores sobre branco fica <3:1, daí o **relief obrigatório**: rótulos/legenda + a tabela).
+
+## Decisões tomadas — PWA e uso no celular
+
+Registradas em 2026-08-09. Efetivadas. O celular passou a ser o dispositivo
+principal de uso, e o Prumo é instalável na tela de início.
+
+- **PWA, não app de loja.** Empacotar com Capacitor/TWA custaria conta de
+  desenvolvedor Apple (US$ 99/ano), revisão a cada versão e um pipeline de build
+  separado — tudo isso para entregar a mesma tela. O PWA instala pela Vercel, em
+  HTTPS, e atualiza a cada deploy sem passar por ninguém.
+- **`app/manifest.ts`** (rota `/manifest.webmanifest` gerada pelo Next). Detalhes
+  que não são óbvios: `start_url` é **`/dashboard`**, não `/` — quem instalou o
+  app não quer cair na landing de marketing toda vez; e há um ícone `maskable`
+  **separado** do comum, porque o Android recorta o ícone numa forma própria e só
+  o círculo central de 80% é seguro.
+- **Ícones do PWA**: `public/icon-192.png`, `icon-512.png` e
+  `icon-maskable-512.png`, gerados de `assets/brand/prumo-logo.png` por script
+  pontual (não versionado), como os demais ícones da marca.
+- **`themeColor` tem duas cores** (`viewport` no layout raiz), espelhando
+  `--sidebar` no claro e no escuro. Uma cor só deixaria a barra de status do
+  celular brigando com o topo do app em um dos dois temas.
+- **Sem service worker / sem offline.** O manifest torna o app instalável, mas
+  todo dado vem da API por HTTP. Offline de verdade exigiria cache de respostas
+  **e** fila de lançamentos feitos sem rede, com resolução de conflito — é
+  feature própria, não um detalhe do PWA. Fica no roadmap.
+- **`InstallPrompt`** (`components/install-prompt.tsx`, exibido no dashboard):
+  no Android usa o evento `beforeinstallprompt` e vira um botão de instalar de
+  verdade; **no iOS esse evento não existe**, e o único caminho é o menu
+  Compartilhar do Safari — ali o componente ensina o passo a passo. Some quando
+  o app já roda instalado (`display-mode: standalone`, mais a flag proprietária
+  `navigator.standalone` do Safari) e fica escondido depois de dispensado.
+- **Atalhos do ícone** (segurar o ícone na tela de início): "Novo lançamento" e
+  "Nova tarefa" abrem `/financas?novo=1` e `/tarefas?nova=1`. O hook
+  `lib/use-shortcut.ts` lê a marca, **limpa a query** e serve só para
+  *inicializar* o estado do diálogo — se controlasse o diálogo, recarregar a
+  página o reabriria para sempre. Ler query obriga a um `<Suspense>` em volta.
+
+### Toque, não ponteiro
+
+- **Bug corrigido**: em `entry-row.tsx`, editar e excluir um lançamento ficavam
+  atrás de `opacity-0` + `group-hover`. Como não há hover em celular, **não havia
+  como mexer num lançamento pelo telefone**. Agora só somem sob `pointer-fine`.
+- **O critério é `pointer-coarse`/`pointer-fine`, não breakpoint.** Alvo de toque
+  é modalidade de entrada, não largura de tela — um celular deitado passa de
+  `sm` e continua sendo um celular. Os tamanhos `default`, `lg`, `icon` e
+  `icon-lg` do `Button` crescem sob `pointer-coarse` (32→40px, 36→44px); os
+  tamanhos densos (`xs`, `sm`, `icon-*` pequenos) ficam como estão, e quem os usa
+  em superfície de toque ajusta no lugar.
+- **Diálogo vira folha no rodapé** no mobile (`ui/dialog.tsx`) e volta a ser
+  caixa centrada a partir de `sm`. A centralização no desktop passou a usar
+  `inset-0 + m-auto` em vez de `-translate-*`: as animações de entrada/saída
+  também escrevem na propriedade `translate`, e com as duas coisas juntas o
+  diálogo saltava. O rodapé do diálogo respeita `env(safe-area-inset-bottom)`.
 
 ## Decisões tomadas — auth própria e deploy
 

@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Bricolage_Grotesque, Figtree, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/providers";
@@ -27,6 +27,13 @@ export const metadata: Metadata = {
   description:
     "Painel web para registrar despesas, receitas e tarefas, organizar por categoria e acompanhar o mês com relatórios claros.",
   applicationName: "Prumo",
+  // Instalado na tela de início do iPhone, o Safari lê estas duas: a primeira
+  // faz o app abrir sem a barra de endereço, a segunda é o nome sob o ícone.
+  appleWebApp: {
+    capable: true,
+    title: "Prumo",
+    statusBarStyle: "default",
+  },
   openGraph: {
     title: "Prumo — suas finanças e tarefas, organizadas",
     description:
@@ -35,6 +42,27 @@ export const metadata: Metadata = {
     locale: "pt_BR",
     type: "website",
   },
+};
+
+/**
+ * `themeColor` pinta a barra de status do celular quando o app roda instalado.
+ * São duas porque o Prumo tem tema claro e escuro — uma cor só deixaria a barra
+ * brigando com o topo do app em um dos dois. Os valores espelham `--sidebar`
+ * (o fundo do header) no `globals.css`.
+ *
+ * `viewportFit: "cover"` deixa o app usar a área sob o notch; o rodapé já
+ * compensa com `env(safe-area-inset-bottom)` no `app-shell`.
+ */
+export const viewport: Viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)", color: "#232230" },
+  ],
+  viewportFit: "cover",
+  // Sem travar o zoom: o usuário pode precisar ampliar, e bloquear isso é
+  // barreira de acessibilidade.
+  initialScale: 1,
+  width: "device-width",
 };
 
 export default function RootLayout({

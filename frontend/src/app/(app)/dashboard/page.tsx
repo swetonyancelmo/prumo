@@ -15,6 +15,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useProfile } from "@/components/profile-provider";
 import { PageHeader } from "@/components/page-header";
+import { InstallPrompt } from "@/components/install-prompt";
 import { CategoryTab } from "@/components/category-tab";
 import { TaskRow } from "@/components/task-row";
 import { Button } from "@/components/ui/button";
@@ -79,6 +80,8 @@ export default function DashboardPage() {
           </Button>
         }
       />
+
+      <InstallPrompt />
 
       {/* Cartão de saldo */}
       <Card className="mb-6 overflow-hidden">

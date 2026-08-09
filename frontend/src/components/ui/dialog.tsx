@@ -53,7 +53,16 @@ function DialogContent({
       <DialogPrimitive.Popup
         data-slot="dialog-content"
         className={cn(
-          "fixed top-1/2 left-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-4 rounded-xl bg-popover p-4 text-sm text-popover-foreground ring-1 ring-foreground/10 duration-100 outline-none sm:max-w-sm data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
+          // Mobile: folha colada no rodapé, que sobe — é o gesto que o polegar
+          // espera e mantém os campos perto do teclado. Desktop (sm+): caixa
+          // centrada, como antes.
+          //
+          // A centralização usa `inset-0 + m-auto` em vez de `translate`
+          // porque as animações de entrada/saída também escrevem na
+          // propriedade `translate`; com as duas coisas ali, o diálogo saltava.
+          "fixed inset-x-0 bottom-0 z-50 grid max-h-[85dvh] w-full gap-4 overflow-y-auto rounded-t-2xl bg-popover p-4 text-sm text-popover-foreground ring-1 ring-foreground/10 duration-150 outline-none",
+          "sm:inset-0 sm:m-auto sm:h-fit sm:max-w-sm sm:rounded-xl",
+          "data-open:animate-in data-open:fade-in-0 data-open:slide-in-from-bottom-8 data-closed:animate-out data-closed:fade-out-0 data-closed:slide-out-to-bottom-8",
           className
         )}
         {...props}
@@ -102,7 +111,9 @@ function DialogFooter({
     <div
       data-slot="dialog-footer"
       className={cn(
-        "-mx-4 -mb-4 flex flex-col-reverse gap-2 rounded-b-xl border-t bg-muted/50 p-4 sm:flex-row sm:justify-end",
+        // No mobile o rodapé encosta na borda de baixo da tela, então o padding
+        // inferior respeita a barra de gestos do aparelho.
+        "-mx-4 -mb-4 flex flex-col-reverse gap-2 border-t bg-muted/50 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:rounded-b-xl sm:pb-4 sm:flex-row sm:justify-end",
         className
       )}
       {...props}

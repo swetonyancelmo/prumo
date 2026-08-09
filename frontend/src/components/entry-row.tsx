@@ -90,12 +90,19 @@ function Row({
         >
           {sign} {amount}
         </span>
-        <div className="flex opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
+        {/*
+          Editar e excluir apareciam só no hover — o que, num celular, é o
+          mesmo que não aparecer nunca: não havia como mexer num lançamento
+          pelo telefone. Agora só somem onde existe ponteiro de verdade
+          (`pointer-fine`); no toque ficam sempre visíveis e maiores.
+        */}
+        <div className="flex pointer-fine:opacity-0 pointer-fine:transition-opacity pointer-fine:group-hover:opacity-100 pointer-fine:focus-within:opacity-100">
           <Button
             variant="ghost"
             size="icon-sm"
             onClick={onEdit}
             aria-label="Editar"
+            className="size-10 pointer-fine:size-7"
           >
             <PencilIcon />
           </Button>
@@ -104,6 +111,7 @@ function Row({
             size="icon-sm"
             onClick={onDelete}
             aria-label="Excluir"
+            className="size-10 pointer-fine:size-7"
           >
             <Trash2Icon />
           </Button>
