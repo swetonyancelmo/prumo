@@ -4,12 +4,14 @@ Organizador de vida pessoal (financeiro + tarefas) — **painel web, gestão man
 Backend em **NestJS + Prisma + Postgres**.
 
 - **Banco (dev)**: Postgres 16 em Docker, na raiz do repo (`docker compose up -d`).
-- **Auth**: **Supabase** (validação de JWT via JWKS). Só o banco saiu de lá.
+- **Banco (produção)**: Neon. Ver [`DEPLOY.md`](../DEPLOY.md).
+- **Auth**: própria (e-mail + senha, bcrypt, JWT HS256). Sem provedor externo.
 
 ## Módulos
 
-`UsersModule`, `FinanceModule` (categorias/despesas/receitas), `TasksModule`,
-`ReportsModule` (relatórios financeiros), `AuthModule` (validação de JWT do Supabase).
+`AuthModule` (cadastro/login/refresh), `UsersModule`, `FinanceModule`
+(categorias/despesas/receitas), `TasksModule`, `ReportsModule` (relatórios financeiros),
+`HealthModule` (health check do Render).
 
 ## Setup
 
@@ -19,9 +21,10 @@ cd .. && docker compose up -d && cd backend
 
 # 2. Backend
 npm install
-cp .env.example .env   # DATABASE_URL/DIRECT_URL já vêm apontando pro Docker; preencha SUPABASE_URL
+cp .env.example .env    # DATABASE_URL/DIRECT_URL já apontam pro Docker.
+                        # Gere o JWT_SECRET: openssl rand -base64 48
 npm run prisma:generate
-npm run prisma:migrate  # aplica as migrations no Postgres local
+npm run prisma:deploy   # aplica as migrations no Postgres local
 ```
 
 ### Banco local em Docker
@@ -38,49 +41,39 @@ docker compose logs -f postgres
 docker exec -it ordenai-postgres psql -U ordenai -d ordenai   # shell SQL
 ```
 
-**Shim de `auth.uid()`.** A migration `enable_rls` usa `auth.uid()`, função que só existe
-no Supabase — num Postgres puro ela quebraria o `prisma migrate`. Por isso
-`docker/postgres/init/01-supabase-auth-shim.sql` cria o schema `auth` e essa função na
-primeira subida do container, mantendo as migrations **idênticas** em local e produção.
-Como nada injeta claims de JWT localmente, `auth.uid()` retorna NULL e as policies negam
-tudo — igual ao Supabase para um usuário não autenticado. O backend não é afetado: o
-Prisma conecta como superusuário, que ignora RLS (inclusive `FORCE`).
+É um Postgres puro — sem extensões nem init scripts. O shim de `auth.uid()` que existia
+para imitar o Supabase foi removido junto com o RLS (ver `CLAUDE.md`).
 
-Como o script só roda com o volume vazio, editá-lo exige `docker compose down -v` para
-ter efeito.
+### Migrations
 
-**Auth por JWKS/ES256 — sem segredo compartilhado.** O projeto Supabase usa JWT Signing
-Keys assimétricas (ECC P-256). A strategy valida o JWT buscando a chave pública em
-`${SUPABASE_URL}/auth/v1/.well-known/jwks.json` (por isso o `.env` precisa de `SUPABASE_URL`,
-não mais de `SUPABASE_JWT_SECRET`, que foi removido).
+- `20260809000000_init` — cria todas as tabelas, enums e índices.
 
-### Migrations já versionadas
-
-- `20260701000000_init` — cria todas as tabelas/enums/índices.
-- `20260701000100_enable_rls` — habilita RLS em `expenses`, `incomes`, `tasks` e
-  `whatsapp_messages`, escopando por `auth.uid() = user_id`.
-- `20260702000000_add_task_has_time` — adiciona `tasks.has_time` (tarefa de dia inteiro
-  vs. compromisso com horário).
-- `20260717000000_remove_whatsapp_and_phone` — pivot web-only: remove a tabela
-  `whatsapp_messages`, as colunas `phone_number`/`raw_message_id`/`source` e os enums
-  `EntrySource`/`MessageDirection`.
-
-Todas já existem em `prisma/migrations`. Com o container de pé e o `.env` preenchido,
-`npm run prisma:migrate` (ou `prisma migrate deploy` em produção) aplica-as em ordem. Ver o
-cabeçalho de `enable_rls/migration.sql` para o caveat sobre `FORCE RLS` e `BYPASSRLS`.
+É a única: as quatro migrations anteriores foram squashadas nela quando o projeto saiu do
+Supabase, antes de qualquer deploy. `npm run prisma:deploy` aplica em qualquer ambiente;
+no Render isso roda no build.
 
 ## Rodar
 
 ```bash
 npm run start:dev       # http://localhost:3000/api
-npm test                # testes unitários (parsing + cálculo financeiro)
+npm test                # testes unitários (auth, cálculo financeiro, relatórios)
 ```
 
-## Endpoints (todos exigem `Authorization: Bearer <supabase_jwt>`)
+## Endpoints
+
+Públicos:
+
+| Método | Rota                  | Descrição                                    |
+| ------ | --------------------- | -------------------------------------------- |
+| GET    | `/api/health`         | Health check (consulta o banco)              |
+| POST   | `/api/auth/register`  | Cria conta → `{ accessToken, refreshToken, user }` |
+| POST   | `/api/auth/login`     | Autentica → mesmo formato                    |
+| POST   | `/api/auth/refresh`   | Troca o refresh token por um par novo        |
+
+Autenticados (`Authorization: Bearer <accessToken>`):
 
 | Método | Rota                | Descrição                          |
 | ------ | ------------------- | ---------------------------------- |
-| POST   | `/api/users`        | Cria/atualiza perfil (id = auth uid) |
 | GET    | `/api/users/me`     | Perfil autenticado                 |
 | PATCH  | `/api/users/me`     | Atualiza perfil                    |
 | DELETE | `/api/users/me`     | Exclusão completa (LGPD)           |
@@ -90,13 +83,22 @@ npm test                # testes unitários (parsing + cálculo financeiro)
 | CRUD   | `/api/tasks`        | Tarefas (recorrência + `hasTime`)  |
 | GET    | `/api/reports`      | Relatório financeiro por período   |
 
+### Autenticação
+
+Dois JWTs HS256 assinados com `JWT_SECRET`, separados pela **audience**: acesso
+(`prumo:access`, 15min) e refresh (`prumo:refresh`, 30 dias). Um access token não renova
+sessão. Senhas com bcrypt (12 rounds); `password_hash` nunca sai numa resposta.
+
+Não há recuperação de senha nem verificação de e-mail — dependem de provedor de e-mail,
+ainda não configurado.
+
 ### `GET /api/reports`
 
 `?period=week|month|quarter|semester|year&anchor=<ISO>` (âncora = qualquer dia do período;
 default hoje). Retorna `{ range, totals, previous, byCategory, series }` — totais, variação
 vs. período anterior, gasto por categoria e série por sub-período. Lógica pura e testada em
-`reports/reports.util.ts`. Cálculos em horário local — em produção fixar
-`TZ=America/Sao_Paulo`.
+`reports/reports.util.ts`. Cálculos em horário local — por isso `TZ=America/Sao_Paulo` é
+fixado em todos os ambientes.
 
 ## Modelo de dados
 

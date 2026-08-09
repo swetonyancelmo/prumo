@@ -9,15 +9,15 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
-import { SupabaseJwtGuard } from '../auth/supabase-jwt.guard';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
-import { AuthUser } from '../auth/supabase-jwt.strategy';
+import { AuthUser } from '../auth/jwt.strategy';
 import { TasksService } from './tasks.service';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
 
 @Controller('tasks')
-@UseGuards(SupabaseJwtGuard)
+@UseGuards(JwtAuthGuard)
 export class TasksController {
   constructor(private readonly tasks: TasksService) {}
 

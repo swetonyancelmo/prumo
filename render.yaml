@@ -1,0 +1,65 @@
+# ==========================================================================
+# Prumo — API NestJS no Render (Blueprint).
+#
+# Como usar: no Render, "New +" > "Blueprint" e aponte para este repositório.
+# Ele lê este arquivo e cria o serviço já configurado. As variáveis marcadas
+# com `sync: false` NÃO ficam no repo — o Render pergunta os valores na criação
+# (ou você preenche depois em Environment). Ver DEPLOY.md.
+# ==========================================================================
+
+services:
+  - type: web
+    name: prumo-api
+    runtime: node
+    plan: free
+    # Não há região no Brasil no plano free. Virginia é a de menor latência
+    # para o Brasil entre as disponíveis — crie o banco no Neon em
+    # AWS us-east-1 (mesma região) para o hop API↔banco ser curto.
+    region: virginia
+    rootDir: backend
+
+    # `migrate deploy` no build (e não no start) para a migration rodar uma vez
+    # por deploy, e não a cada restart do processo. Só aplica migrations já
+    # versionadas — nunca gera nem apaga nada sozinho.
+    # Em planos pagos, o lugar mais correto é `preDeployCommand` (indisponível
+    # no free): lá a migration roda depois do build e antes de trocar a versão.
+    buildCommand: npm ci && npx prisma generate && npm run build && npx prisma migrate deploy
+    startCommand: npm run start:prod
+
+    # O Render só considera o deploy saudável quando esta rota responde 200.
+    # Ela consulta o Postgres — DATABASE_URL errada derruba o deploy aqui,
+    # com erro explícito, em vez de quebrar no primeiro request do usuário.
+    healthCheckPath: /api/health
+
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: NODE_ENV
+        value: production
+
+      # Os relatórios agregam em horário LOCAL do processo (ver CLAUDE.md >
+      # Relatórios). Sem isto o container roda em UTC e lançamentos do fim do
+      # dia caem no dia seguinte para o usuário brasileiro.
+      - key: TZ
+        value: America/Sao_Paulo
+
+      # Assinatura dos JWTs. O Render gera um valor aleatório na criação — não
+      # existe em lugar nenhum do repo. Trocá-lo desloga todo mundo.
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_ACCESS_TTL
+        value: 15m
+      - key: JWT_REFRESH_TTL
+        value: 30d
+
+      # --- Preencher no Render (ver DEPLOY.md) ---
+      # Neon, host COM `-pooler` (PgBouncer) + `?sslmode=require&pgbouncer=true`
+      - key: DATABASE_URL
+        sync: false
+      # Neon, host SEM `-pooler` — `prisma migrate` exige conexão direta
+      - key: DIRECT_URL
+        sync: false
+      # URL do frontend na Vercel, ex.: https://prumo.vercel.app
+      # Sem isto a API aceita qualquer origem.
+      - key: CORS_ORIGIN
+        sync: false

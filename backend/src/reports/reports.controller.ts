@@ -1,13 +1,13 @@
 import { Controller, Get, Query, UseGuards } from '@nestjs/common';
-import { SupabaseJwtGuard } from '../auth/supabase-jwt.guard';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
-import { AuthUser } from '../auth/supabase-jwt.strategy';
+import { AuthUser } from '../auth/jwt.strategy';
 import { ReportsService } from './reports.service';
 import { ReportQueryDto } from './dto/report-query.dto';
 import type { ReportPeriod } from './reports.util';
 
 @Controller('reports')
-@UseGuards(SupabaseJwtGuard)
+@UseGuards(JwtAuthGuard)
 export class ReportsController {
   constructor(private readonly reports: ReportsService) {}
 

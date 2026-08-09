@@ -42,8 +42,8 @@ function useInitials() {
 function useSignOut() {
   const { signOut } = useAuth();
   const router = useRouter();
-  return async () => {
-    await signOut();
+  return () => {
+    signOut();
     router.replace("/login");
   };
 }

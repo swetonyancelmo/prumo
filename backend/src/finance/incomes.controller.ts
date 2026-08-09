@@ -9,14 +9,14 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
-import { SupabaseJwtGuard } from '../auth/supabase-jwt.guard';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
-import { AuthUser } from '../auth/supabase-jwt.strategy';
+import { AuthUser } from '../auth/jwt.strategy';
 import { IncomesService } from './incomes.service';
 import { CreateIncomeDto, UpdateIncomeDto } from './dto/income.dto';
 
 @Controller('incomes')
-@UseGuards(SupabaseJwtGuard)
+@UseGuards(JwtAuthGuard)
 export class IncomesController {
   constructor(private readonly incomes: IncomesService) {}
 

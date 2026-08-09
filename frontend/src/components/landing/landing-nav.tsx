@@ -7,7 +7,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
 
 export function LandingNav() {
-  const { session, loading } = useAuth();
+  const { user, loading } = useAuth();
 
   return (
     <header className="sticky top-0 z-20 border-b border-border/60 bg-background/80 backdrop-blur">
@@ -17,7 +17,7 @@ export function LandingNav() {
         </Link>
         <div className="flex items-center gap-1.5">
           <ThemeToggle />
-          {!loading && session ? (
+          {!loading && user ? (
             <Button nativeButton={false} render={<Link href="/dashboard" />}>
               Ir para o painel
             </Button>

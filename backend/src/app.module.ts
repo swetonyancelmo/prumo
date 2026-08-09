@@ -5,6 +5,7 @@ import { ZodValidationPipe } from 'nestjs-zod';
 
 import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './auth/auth.module';
+import { HealthModule } from './health/health.module';
 import { UsersModule } from './users/users.module';
 import { FinanceModule } from './finance/finance.module';
 import { ReportsModule } from './reports/reports.module';
@@ -15,6 +16,7 @@ import { TasksModule } from './tasks/tasks.module';
     ConfigModule.forRoot({ isGlobal: true }),
     PrismaModule,
     AuthModule,
+    HealthModule,
     UsersModule,
     FinanceModule,
     ReportsModule,

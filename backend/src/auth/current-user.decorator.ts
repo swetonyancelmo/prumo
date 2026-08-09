@@ -1,8 +1,8 @@
 import { createParamDecorator, ExecutionContext } from '@nestjs/common';
-import { AuthUser } from './supabase-jwt.strategy';
+import { AuthUser } from './jwt.strategy';
 
 /**
- * Injeta o usuário autenticado (extraído do JWT do Supabase) no handler.
+ * Injeta o usuário autenticado (extraído do JWT do Prumo) no handler.
  * Uso: `metodo(@CurrentUser() user: AuthUser)`.
  */
 export const CurrentUser = createParamDecorator(

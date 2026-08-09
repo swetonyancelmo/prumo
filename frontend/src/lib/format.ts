@@ -119,12 +119,37 @@ const CATEGORY_COLORS = [
   "var(--chart-5)",
 ];
 
-/** Cor estável por chave (id/nome da categoria) — a "aba" de assinatura. */
-export function categoryColor(key: string | null | undefined): string {
-  if (!key) return "var(--muted-foreground)";
+/**
+ * Mesma paleta em hex literal, para contextos que não enxergam CSS variables —
+ * hoje, o PDF do relatório. Precisa acompanhar `--chart-1..5` do globals.css
+ * (valores do tema CLARO: um PDF é lido no branco, não em dark mode).
+ */
+export const CATEGORY_HEX = [
+  "#6c5ce0", // orquídea
+  "#2fa98c", // menta
+  "#f2765c", // coral
+  "#eaa72c", // dourado
+  "#4c8dde", // azul sereno
+];
+
+// Hash único das duas funções abaixo: a cor de uma categoria na tela e no PDF
+// tem de ser a mesma, senão o relatório baixado não bate com o que se viu.
+function categoryIndex(key: string): number {
   let hash = 0;
   for (let i = 0; i < key.length; i++) {
     hash = (hash * 31 + key.charCodeAt(i)) >>> 0;
   }
-  return CATEGORY_COLORS[hash % CATEGORY_COLORS.length];
+  return hash % CATEGORY_COLORS.length;
+}
+
+/** Cor estável por chave (id/nome da categoria) — a "aba" de assinatura. */
+export function categoryColor(key: string | null | undefined): string {
+  if (!key) return "var(--muted-foreground)";
+  return CATEGORY_COLORS[categoryIndex(key)];
+}
+
+/** Como `categoryColor`, mas em hex — para o PDF. */
+export function categoryColorHex(key: string | null | undefined): string {
+  if (!key) return "#78748a";
+  return CATEGORY_HEX[categoryIndex(key)];
 }

@@ -5,7 +5,8 @@ export type CategoryType = "despesa" | "receita";
 
 export interface UserProfile {
   id: string;
-  email: string | null;
+  // Obrigatório: é a credencial de login da conta.
+  email: string;
   name: string | null;
   createdAt: string;
 }

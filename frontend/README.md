@@ -1,7 +1,7 @@
 # Prumo — Frontend
 
 Painel web do Prumo (Next.js 16 + Tailwind v4 + shadcn/ui, base UI).
-Consome a API NestJS em `../backend` e autentica via Supabase Auth (JWT ES256).
+Consome a API NestJS em `../backend`, inclusive para autenticar (e-mail + senha, JWT).
 
 ## Rodando localmente
 
@@ -16,8 +16,8 @@ Suba o backend (`../backend`) em paralelo — por padrão o front espera a API e
 
 ## Variáveis de ambiente
 
-Ver `.env.local.example`. Só chaves públicas (`NEXT_PUBLIC_*`):
-`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `NEXT_PUBLIC_API_URL`.
+Ver `.env.local.example`. Só uma: **`NEXT_PUBLIC_API_URL`** (a URL da API, com o sufixo
+`/api`). Não há segredo no frontend.
 
 ## Design
 
@@ -28,11 +28,12 @@ assinatura. Tokens em `src/app/globals.css`.
 ## Telas
 
 - `/` — **landing page** pública (marketing, SEO); nav ciente de sessão
-- `/login` e `/onboarding` (cria o perfil — só o nome)
+- `/login` — cadastro e login na mesma tela (o cadastro já cria o perfil)
 - `/dashboard` — saldo do mês, gastos por categoria, prévia de tarefas
 - `/financas` — despesas e receitas do mês (criar/editar/excluir)
 - `/relatorios` — relatórios financeiros por período (semana → ano): KPIs com variação,
-  gráficos (barras, rosca, linha) e tabela por categoria. Consome `GET /api/reports`
+  gráficos (barras, rosca, linha) e tabela por categoria. Consome `GET /api/reports`.
+  Botão **"Baixar PDF"** gera um documento com a marca (`src/lib/report-pdf.tsx`)
 - `/tarefas` — tarefas com vencimento, **horário opcional** (com hora = compromisso/agenda)
   e recorrência (criar/editar/concluir/excluir)
 

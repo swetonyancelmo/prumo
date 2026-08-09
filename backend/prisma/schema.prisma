@@ -25,11 +25,14 @@ enum CategoryType {
 // Modelos
 // --------------------------------------------------------------------------
 
+// A conta é do próprio Prumo: `id` é gerado aqui (não vem mais de um provedor
+// externo) e `email` + `passwordHash` são a credencial de login.
 model User {
-  id        String   @id @default(uuid()) @db.Uuid
-  email     String?  @unique
-  name      String?
-  createdAt DateTime @default(now()) @map("created_at")
+  id           String   @id @default(uuid()) @db.Uuid
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  name         String?
+  createdAt    DateTime @default(now()) @map("created_at")
 
   categories Category[]
   expenses   Expense[]

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowRightIcon } from "lucide-react";
-import { supabase } from "@/lib/supabase";
+import { ApiError } from "@/lib/api";
 import { useAuth } from "@/components/auth-provider";
 import { Logo } from "@/components/logo";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -22,44 +22,36 @@ type Mode = "signin" | "signup";
 
 export default function LoginPage() {
   const router = useRouter();
-  const { session, loading } = useAuth();
+  const { user, loading, signIn, signUp } = useAuth();
   const [mode, setMode] = useState<Mode>("signin");
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   // Já autenticado? Segue para o painel.
   useEffect(() => {
-    if (!loading && session) router.replace("/dashboard");
-  }, [loading, session, router]);
+    if (!loading && user) router.replace("/dashboard");
+  }, [loading, user, router]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSubmitting(true);
     try {
       if (mode === "signup") {
-        const { data, error } = await supabase.auth.signUp({ email, password });
-        if (error) throw error;
-        if (!data.session) {
-          toast.success(
-            "Conta criada! Confirme seu e-mail para entrar.",
-          );
-          setMode("signin");
-          return;
-        }
+        // O cadastro já cria o perfil e devolve a sessão — não há passo de
+        // onboarding depois.
+        await signUp(email, password, name.trim() || undefined);
       } else {
-        const { error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
-        if (error) throw error;
+        await signIn(email, password);
       }
       router.replace("/dashboard");
     } catch (err) {
       const message =
-        err instanceof Error ? err.message : "Não foi possível continuar.";
-      toast.error(traduzErro(message));
-    } finally {
+        err instanceof ApiError
+          ? err.message
+          : "Não foi possível conectar. Verifique sua internet e tente de novo.";
+      toast.error(message);
       setSubmitting(false);
     }
   }
@@ -73,13 +65,25 @@ export default function LoginPage() {
         <div className="mb-8 flex flex-col items-center gap-3 text-center">
           <Logo markClassName="size-10" className="gap-2.5 [&_span]:text-2xl" />
           <p className="text-balance text-muted-foreground">
-            Seu dia organizado, no ritmo de uma conversa.
+            Seu dia organizado, do jeito que você anota.
           </p>
         </div>
 
         <div className="rounded-2xl border bg-card p-6 shadow-[0_6px_24px_rgba(43,42,51,0.06)]">
           <form onSubmit={handleSubmit}>
             <FieldGroup>
+              {mode === "signup" && (
+                <Field>
+                  <FieldLabel htmlFor="name">Seu nome</FieldLabel>
+                  <Input
+                    id="name"
+                    autoComplete="name"
+                    placeholder="Como te chamamos?"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                  />
+                </Field>
+              )}
               <Field>
                 <FieldLabel htmlFor="email">E-mail</FieldLabel>
                 <Input
@@ -103,11 +107,11 @@ export default function LoginPage() {
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  minLength={6}
+                  minLength={mode === "signup" ? 8 : undefined}
                   required
                 />
                 {mode === "signup" && (
-                  <FieldDescription>Mínimo de 6 caracteres.</FieldDescription>
+                  <FieldDescription>Mínimo de 8 caracteres.</FieldDescription>
                 )}
               </Field>
               <Button type="submit" disabled={submitting} className="w-full">
@@ -137,17 +141,4 @@ export default function LoginPage() {
       </div>
     </main>
   );
-}
-
-function traduzErro(message: string): string {
-  if (/invalid login credentials/i.test(message)) {
-    return "E-mail ou senha incorretos.";
-  }
-  if (/already registered/i.test(message)) {
-    return "Este e-mail já tem conta. Tente entrar.";
-  }
-  if (/email not confirmed/i.test(message)) {
-    return "Confirme seu e-mail antes de entrar.";
-  }
-  return message;
 }

@@ -16,18 +16,18 @@ toda entrada de dados é feita pela própria pessoa no painel.
 
 - **Backend**: NestJS (TypeScript)
 - **Banco de dados — dev**: Postgres 16 em **Docker local** (`docker-compose.yml` na raiz).
-  Ver "Decisões tomadas — banco local em Docker".
-- **Banco de dados — produção**: Supabase (Postgres gerenciado + Row Level Security)
-- **Auth**: Supabase Auth (JWT via JWKS) — **em todos os ambientes**, inclusive com o
-  banco local. Só o Postgres saiu do Supabase em dev; o login não.
+- **Banco de dados — produção**: **Neon** (Postgres gerenciado)
+- **Auth**: **própria, no NestJS** (e-mail + senha, bcrypt, JWT HS256). Sem provedor
+  externo. Ver "Decisões tomadas — auth própria e deploy".
 - **Frontend web**: Next.js 16 + Tailwind v4 + shadcn/ui (base UI)
 - **ORM**: Prisma
+- **Deploy**: Vercel (frontend) + Render (API) + Neon (banco). Ver `DEPLOY.md`.
 
 ## Modelo de dados
 
 ```
 users
-  id (= auth uid do Supabase), email, name, created_at
+  id, email (único), password_hash, name, created_at
 
 categories
   id, user_id, name, type (despesa|receita), is_default
@@ -43,7 +43,9 @@ tasks
   recurrence_rule (nullable), is_completed, created_at
 ```
 
-`users.id` **é** o auth uid do Supabase (não um id próprio). Valores monetários usam
+`users.id` é gerado pelo próprio app (uuid). `email` é a credencial de login — obrigatório
+e único, normalizado para minúsculas na validação. `password_hash` **nunca** sai numa
+resposta da API (o `UsersService` usa `select` explícito). Valores monetários usam
 `Decimal(12,2)`. Deleção de usuário faz cascata (Prisma `onDelete: Cascade`) em
 categorias/despesas/receitas/tarefas.
 
@@ -61,10 +63,16 @@ categorias/despesas/receitas/tarefas.
 Estado atual: o núcleo web (cadastro, CRUD de finanças/tarefas, dashboard, relatórios) está
 **funcional e validável**. O que falta para um produto web "minimamente completo":
 
-- [x] **Backend core**: modelagem, CRUD REST, auth (Supabase JWKS)
-- [x] **Painel web**: login, onboarding, dashboard, finanças, tarefas (Next.js)
+- [x] **Backend core**: modelagem, CRUD REST, auth própria (bcrypt + JWT)
+- [x] **Painel web**: cadastro/login, dashboard, finanças, tarefas (Next.js)
 - [x] **Relatórios**: `GET /api/reports` + `/relatorios` (semana→ano, gráficos, variação)
-- [ ] **Export de dados (LGPD)**: endpoint + botão. Só existe exclusão hoje.
+- [x] **Relatório em PDF**: botão "Baixar PDF" em `/relatorios`, documento com a marca
+- [x] **Pronto para deploy**: Neon + Render + Vercel (`render.yaml`, `DEPLOY.md`)
+- [ ] **Recuperação de senha**: exige provedor de e-mail (Resend/similar). Hoje, quem
+      esquece a senha não tem como recuperar a conta.
+- [ ] **Export de dados (LGPD)**: endpoint + botão que devolva TODOS os dados do
+      usuário em formato aberto. O PDF de relatório não cobre isto — ele é um recorte
+      financeiro de um período, não o acervo da conta.
 - [ ] **Recorrência de tarefas de verdade**: gerar as ocorrências a partir de `recurrence_rule`.
 - [ ] **Notificações de vencimento**: cron diário + canal (e-mail) — não há infra ainda.
 - [ ] **Gestão de categorias**: hoje só dá para criar categoria inline no lançamento;
@@ -90,13 +98,8 @@ Registradas em 2026-07-17. Efetivadas. Removem o escopo de WhatsApp/IA.
   removidos a tabela `whatsapp_messages`, `users.phone_number`, `raw_message_id` de
   expenses/incomes/tasks, a coluna `source` e os enums `EntrySource`/`MessageDirection`.
   Como tudo é web, `source` (whatsapp|web) virou vestígio.
-- **Migration escrita à mão + `prisma migrate deploy`** (não `migrate dev`): o shadow
-  database do `migrate dev` não tem o shim de `auth.uid()` (só o banco principal recebe os
-  init scripts do Docker), então ele quebraria ao reaplicar `enable_rls`. Padrão a repetir
-  para novas migrations locais enquanto o RLS depender de `auth.uid()`.
-- **Onboarding só com nome**: sem telefone. `POST /api/users` cria o perfil (necessário
-  pela FK) só com `name` (opcional) + `email`. O gate segue igual: `GET /users/me` = 404 →
-  `/onboarding`.
+- **Onboarding só com nome**: sem telefone. *(Obsoleto desde 2026-08-09: o onboarding
+  deixou de existir — o cadastro já cria o perfil completo.)*
 - **Nome do produto: Prumo** (fio de prumo — alinhamento/organização). Renomeado em README,
   UI, metadados e `package.json` (`name: prumo`). Identificadores de infra continuam
   minúsculos e inalterados: container `ordenai-postgres`, base/usuário `ordenai`, projeto
@@ -110,7 +113,7 @@ Registradas em 2026-07-17. Efetivadas. Removem o escopo de WhatsApp/IA.
   arredondado** (funciona em qualquer fundo, claro/escuro, sem virar quadrado solto). O
   componente `Logo`/`LogoMark` (`frontend/src/components/logo.tsx`) renderiza
   `public/prumo-mark.png` via `next/image`. Aparece no header do app (sidebar + topo
-  mobile), login, onboarding, nav e footer da landing.
+  mobile), login, nav e footer da landing.
 - **Ícones gerados** a partir da fonte (script pontual, não versionado): `app/icon.png`
   (512), `app/apple-icon.png` (180), `app/favicon.ico` (16/32/48), `public/prumo-mark.png`
   (128, in-app) e `app/opengraph-image.png` (1200×630). Regerar exige re-rodar o script a
@@ -129,37 +132,28 @@ Registradas em 2026-07-01. Estas são decisões efetivadas, não mais rascunho.
 - **Validação com Zod** (via `nestjs-zod` + `createZodDto`), não class-validator — validação
   declarativa e schemas reaproveitáveis. `ZodValidationPipe` registrado como `APP_PIPE` global.
 - **Migrations com `prisma migrate`** (arquivos versionados em `prisma/migrations`),
-  não `prisma db push`. Usa `DIRECT_URL` (porta 5432); o runtime usa `DATABASE_URL`
-  (pooler 6543 no Supabase; mesma porta 5432 no Docker local).
-- **Auth**: o NestJS **valida o JWT emitido pelo Supabase Auth** (não recria login
-  próprio). O projeto usa **JWT Signing Keys assimétricas (ECC P-256 → ES256)**, então
-  a strategy `supabase-jwt` valida **via JWKS**: busca a chave pública em
-  `${SUPABASE_URL}/auth/v1/.well-known/jwks.json` (jwks-rsa, com cache + rate limit),
-  resolve pelo `kid` do header e valida `issuer`/`audience`. **Não há segredo
-  compartilhado** — o fallback HS256/`SUPABASE_JWT_SECRET` foi removido. Guard
-  `SupabaseJwtGuard`, decorator `@CurrentUser()` extrai `user.id` do `sub`. As opções da
-  strategy estão isoladas em `buildSupabaseJwtOptions()` para testabilidade (o teste mocka
-  o endpoint JWKS com nock + um par de chaves EC).
+  não `prisma db push`. O `migrate` usa `DIRECT_URL` (conexão direta); o runtime usa
+  `DATABASE_URL` (host `-pooler` no Neon; mesma URL no Docker local, que não tem pooler).
+- **Auth**: substituída em 2026-08-09 por implementação própria — ver "Decisões
+  tomadas — auth própria e deploy".
 - **Dinheiro**: `Decimal(12,2)` no Prisma; agregação financeira feita em centavos
   (inteiros) para evitar erro de ponto flutuante. Lógica pura isolada em
   `FinanceService` (testável sem I/O).
-- **Escopo por usuário**: toda query de serviço é filtrada por `user_id`. Em runtime a
-  API usa a service role / conexão direta do Prisma (RLS não é aplicado pelo Prisma).
-- **RLS como defesa em profundidade**: policies SQL escopando `auth.uid() = user_id`
-  nas tabelas `expenses`, `incomes`, `tasks` (migration `enable_rls`; a policy de
-  `whatsapp_messages` caiu junto com a tabela no pivot). Protege acessos que passem pelo
-  PostgREST/Supabase client (ex.: frontend acessando direto), não o caminho do Prisma.
+- **Escopo por usuário**: toda query de serviço é filtrada por `user_id`. É a **única**
+  barreira entre os dados de dois usuários — não há RLS por baixo desde 2026-08-09.
+- **RLS removido em 2026-08-09** junto com o Supabase: as policies dependiam de
+  `auth.uid()` (função do Supabase) e só protegiam o caminho PostgREST, que deixou de
+  existir. O escopo por usuário é garantido na camada de serviço (`where: { userId }`).
 
 ### LGPD
 - `DELETE /api/users/me` remove o usuário com cascata (Prisma `onDelete: Cascade`) em
   categorias/despesas/receitas/tarefas. **Export de dados fica para fase posterior.**
 
 ### Correção pós-Fase 1 (bug de vínculo do perfil)
-- `POST /api/users` criava o perfil com `id` aleatório, sem vincular ao `sub` do JWT.
-  Como tudo é escopado por `auth uid` e `GET /users/me` busca por ele, o perfil ficava
-  órfão (404 eterno). **Corrigido**: o endpoint usa `@CurrentUser()` e o service faz
-  `upsert` com `id = userId` (auth uid) — idempotente no reenvio do onboarding. O `id` da
-  tabela `users` **é** o auth uid do Supabase.
+- `POST /api/users` criava o perfil com `id` aleatório, sem vincular ao `sub` do JWT,
+  deixando o perfil órfão (404 eterno). Corrigido na época com `upsert` por auth uid.
+  *(Histórico: o endpoint deixou de existir em 2026-08-09 — quem cria o usuário agora é
+  `POST /api/auth/register`, e a classe inteira de bug sumiu junto.)*
 
 ## Decisões tomadas — banco local em Docker
 
@@ -171,24 +165,10 @@ Registradas em 2026-07-15. Efetivadas. Substitui o Supabase **como banco de dese
   `pg_isready`. `TZ=America/Sao_Paulo` fixado no container porque os relatórios agregam em
   horário local do processo — sem isso, local e produção divergiriam.
 - **Sem pooler local**: `DATABASE_URL` e `DIRECT_URL` apontam ambas para 5432. A distinção
-  (6543 pooled / 5432 direct) só existe no Supabase e continua documentada no `.env.example`.
-- **Auth continua no Supabase.** Migrar o banco NÃO removeu a dependência do Supabase: o
-  backend ainda valida JWT via JWKS e o front ainda faz login lá. `users.id` continua sendo
-  o auth uid do Supabase. Um `.env` de dev ainda precisa de `SUPABASE_URL`.
-- **Shim de `auth.uid()` em vez de migration condicional.** A migration `enable_rls` usa
-  `auth.uid()`, que não existe em Postgres puro — ela quebraria o `prisma migrate` local.
-  Em vez de tornar a migration condicional (o que faria o histórico divergir entre
-  ambientes, exatamente o que `prisma migrate` evita), o **ambiente local imita o Supabase**:
-  `docker/postgres/init/01-supabase-auth-shim.sql` cria o schema `auth` com `uid()`/`role()`
-  lendo as claims de `current_setting('request.jwt.claims')`. As migrations ficam idênticas
-  em local e produção.
-- **Init scripts descrevem o ambiente, não o schema.** `docker/postgres/init/` só recebe o
-  que o Supabase já provê de fábrica. Tabela/coluna/índice é sempre `prisma migrate`. Esses
-  scripts rodam **só com o volume vazio** — mudá-los exige `docker compose down -v`.
-- **RLS local se comporta como Supabase**: sem PostgREST injetando claims, `auth.uid()` é
-  NULL e as policies negam tudo — igual a um usuário não autenticado. O backend não é
-  afetado porque o Prisma conecta como superusuário, que ignora RLS (inclusive `FORCE`).
-  Verificado: insert/select/cascata via Prisma passam com as policies ativas.
+  (host `-pooler` vs. direto) só existe no Neon e está documentada no `.env.example`.
+- **O shim de `auth.uid()` e os init scripts foram removidos em 2026-08-09**, junto com o
+  RLS que dependia deles. O `docker/` inteiro deixou de existir: o Postgres local é agora
+  um Postgres puro, sem nada que imite o Supabase.
 
 ## Decisões tomadas — Fase 2 (frontend web)
 
@@ -201,19 +181,16 @@ Registradas em 2026-07-02. Efetivadas.
   (corpo). Tokens de tema (paleta) como CSS variables em `src/app/globals.css`.
 - **Next 16 tem breaking changes** (ver `frontend/AGENTS.md`): Middleware virou `proxy.js`;
   `cookies()`/`params` são async; ESLint com `react-hooks/set-state-in-effect` como erro.
-  Por isso a **auth é client-side** (sem proxy/cookies de servidor): sessão no navegador via
-  `@supabase/supabase-js`, guard num layout client que redireciona.
+  Por isso a **auth é client-side** (sem proxy/cookies de servidor): sessão no navegador,
+  guard num layout client que redireciona.
 
 ### Autenticação e acesso a dados
-- O frontend usa o **Supabase só para auth** (login/logout e obter o access token). **Nenhuma
-  query de dados passa pelo supabase-js** — tudo vai para a **API NestJS** com o JWT no header
-  `Authorization: Bearer` (wrapper em `src/lib/api.ts`). Casa com o RLS: o front nunca acessa
-  o Postgres direto.
-- Variáveis `NEXT_PUBLIC_*` (URL do Supabase, chave **publishable/anon** pública, URL da API).
-  Só chaves públicas no front — segurança real é RLS + validação de JWT no backend.
-- **Onboarding**: como `expenses/incomes/tasks` têm FK para `users`, após o primeiro login a
-  tela `/onboarding` cria o perfil (só **nome**, opcional) via `POST /api/users`.
-  `GET /users/me` = 404 dispara o onboarding.
+- **Todo dado vem da API NestJS**, com o JWT no header `Authorization: Bearer` (wrapper em
+  `src/lib/api.ts`). O front nunca fala com o Postgres direto.
+- Única variável `NEXT_PUBLIC_*`: `NEXT_PUBLIC_API_URL`. Não há segredo no front — a
+  segurança real é a validação do JWT no backend.
+- Detalhes da sessão (tokens, refresh, storage): ver "Decisões tomadas — auth própria e
+  deploy".
 
 ### Design
 - Direção **"caderno de organização que respira"** (não dashboard bancário). Elemento de
@@ -254,7 +231,7 @@ Registradas em 2026-07-02. Efetivadas.
   `anchor` é qualquer dia dentro do período desejado (default: hoje).
 - **Lógica pura e testada** em `reports.util.ts` (`resolvePeriod`, `buildReport`), isolada de
   I/O como o `FinanceService`. Agrega **em centavos**; `reports.service.ts` faz a query Prisma
-  (escopo por `userId` — RLS não cobre o Prisma) e delega para a lógica pura. Testes em
+  (escopo por `userId`, a única barreira entre usuários) e delega para a lógica pura. Testes em
   `reports.util.spec.ts`.
 - **Resposta**: `{ period, range:{start,end,label}, totals:{incomes,expenses,balance},
   previous:{...} (para variação), byCategory:[{name,total,previousTotal,share}],
@@ -264,9 +241,106 @@ Registradas em 2026-07-02. Efetivadas.
   `TZ=America/Sao_Paulo`. A âncora é enviada pelo front como **meio-dia local** (`...T12:00:00`
   sem `Z`) para não escorregar de dia.
 
+### Exportação em PDF (`/relatorios` → "Baixar PDF")
+
+Registrado em 2026-08-09. Documento em `frontend/src/lib/report-pdf.tsx`.
+
+- **`@react-pdf/renderer`, gerado no navegador** — nada de PDF no backend. Fazer isso no
+  servidor exigiria Chromium/Puppeteer, que não cabe nos 512MB do plano free do Render.
+  A biblioteca entra por **import dinâmico no clique**: é pesada e só uma minoria exporta.
+- **Vetorial, não print screen.** Os gráficos são redesenhados com primitivas do react-pdf
+  (barras como `View`, linha de saldo como `Svg`/`Polyline`). Não dá para reaproveitar os
+  SVGs do Recharts: eles dependem de CSS variables que não existem fora do navegador.
+- **Sempre no tema claro**, com as cores hex espelhando o `:root` do `globals.css`. A cor
+  de cada categoria vem de `categoryColorHex()`, que compartilha o hash com
+  `categoryColor()` — a "aba" no PDF tem de ser a mesma cor da tela.
+- **Fonte Helvetica** (embutida no PDF). Bricolage/Figtree vêm via `next/font` e não têm
+  URL estável para registrar; a marca fica por conta do logo, da paleta e do layout.
+- **Layout calibrado para caber em uma página A4** até ~9 categorias, que cobre um mês
+  típico. Acima disso pagina normalmente: cabeçalho, rodapé e cabeçalho da tabela são
+  `fixed` e se repetem.
+- **`range.end` da API é exclusivo** (1º de setembro para agosto) — o PDF recua um instante
+  para exibir o último dia real do período.
+- Hifenização desligada (`Font.registerHyphenationCallback`) para nome de categoria não
+  sair partido ao meio.
+
 ### Frontend — `/relatorios`
 - Seletor de período (ToggleGroup), navegação ‹ ›, KPIs com variação vs. período anterior,
   3 gráficos (barras Receita×Despesa, rosca por categoria, linha de saldo acumulado) e tabela.
 - Gráficos com **shadcn Chart (Recharts)**, reagindo ao dark mode via as `--chart-1..5`.
   A paleta categórica foi validada pela skill `dataviz` (daltonismo OK; contraste de algumas
   cores sobre branco fica <3:1, daí o **relief obrigatório**: rótulos/legenda + a tabela).
+
+## Decisões tomadas — auth própria e deploy
+
+Registradas em 2026-08-09. Efetivadas. **Removem o Supabase do projeto por completo.**
+
+### Por que saiu o Supabase
+O produto vai para produção em **Vercel + Render + Neon**. O Supabase só sobrava como
+provedor de identidade — uma quarta plataforma, com um modelo de dados (auth uid externo
+ditando `users.id`) que já tinha custado um bug de perfil órfão. Autenticação por e-mail e
+senha é escopo pequeno o bastante para morar no NestJS, ao lado do resto.
+
+### Auth própria (NestJS)
+- **Senha**: `bcryptjs` com **12 rounds**, guardada em `users.password_hash`. `bcryptjs`
+  (JS puro) e não `bcrypt` (nativo) de propósito — o build do Render não precisa de
+  node-gyp. Mínimo de 8 caracteres, máximo de 72 (limite do próprio bcrypt).
+- **Tokens**: dois JWTs **HS256** assinados com `JWT_SECRET` — acesso (15min) e refresh
+  (30 dias) —, distinguidos pela **audience** (`prumo:access` / `prumo:refresh`). Um access
+  token **não** serve para renovar sessão; há teste cobrindo isso. `getJwtSecret()` falha na
+  subida se a variável não existir, em vez de deixar a API subir sem conseguir validar nada.
+- **Endpoints**: `POST /api/auth/register|login|refresh` (públicos). Não existe `/auth/me` —
+  `GET /api/users/me` já faz isso.
+- **Login não revela quem tem conta**: e-mail inexistente e senha errada devolvem a mesma
+  mensagem, e o service compara contra um hash descartável (`DUMMY_HASH`) quando o usuário
+  não existe, para o tempo de resposta não denunciar a diferença.
+- **`password_hash` nunca sai da API**: o `UsersService` usa `select` explícito dos campos
+  públicos. É `select` e não `omit` para que campo novo no schema não vaze por esquecimento.
+- **Onboarding acabou**: o registro já cria o perfil completo (nome opcional vai no
+  formulário de cadastro). Sumiram a tela `/onboarding`, o endpoint `POST /api/users` e o
+  gate de "404 em `/users/me`".
+- **Ainda não há**: recuperação de senha nem verificação de e-mail (dependem de provedor de
+  e-mail), e nem revogação de sessão individual — trocar `JWT_SECRET` desloga todo mundo.
+
+### Sessão no frontend
+- Tokens em **localStorage** (`src/lib/auth-storage.ts`), não em cookie httpOnly: em
+  produção o front (Vercel) e a API (Render) estão em domínios diferentes, e um cookie de
+  sessão entre eles seria third-party — categoria que os navegadores vêm bloqueando.
+  O custo é exposição a XSS, mitigado pelo access token curto.
+- **Refresh automático em `lib/api.ts`**: um 401 dispara uma renovação e repete o request
+  uma vez. A renovação é uma **promessa compartilhada** — o dashboard dispara vários
+  requests juntos, e sem isso eles correriam para renovar em paralelo, com os perdedores
+  usando um refresh token já rotacionado.
+- `auth-storage` notifica a árvore React quando a sessão morre fora dela (refresh falhou),
+  senão a UI seguiria mostrando o painel de uma sessão encerrada.
+
+### Banco: Supabase → Neon
+- **Migrations foram squashadas** numa única `20260809000000_init`. O projeto nunca tinha
+  sido deployado, então não havia histórico a preservar — e a migration `enable_rls` usava
+  `auth.uid()`, que não existe no Neon.
+- **RLS foi removido, não portado.** Além de depender de `auth.uid()`, ele protegia o
+  caminho PostgREST, que sumiu junto com o Supabase. Pior: as policies usavam
+  `FORCE ROW LEVEL SECURITY`, e o `neondb_owner` do Neon **não tem `BYPASSRLS`** — mantê-las
+  teria bloqueado o próprio backend (atributo de role não se herda por membership). O escopo
+  por usuário vive na camada de serviço.
+- **Neon tem dois hosts para o mesmo banco**: com `-pooler` (PgBouncer) para `DATABASE_URL`,
+  sem `-pooler` para `DIRECT_URL` (o `prisma migrate` exige conexão direta). `sslmode=require`
+  nos dois; `pgbouncer=true` no primeiro.
+
+### Deploy
+- **`render.yaml` na raiz** (Blueprint): cria o serviço já configurado. `rootDir: backend`,
+  região `virginia` (não há região no Brasil no free; parear com Neon em `us-east-1`),
+  `JWT_SECRET` com `generateValue: true` — o segredo de produção não existe no repo.
+- **Migration roda no `buildCommand`**, não no start: uma vez por deploy, não a cada
+  restart. Em plano pago o lugar certo seria `preDeployCommand`, indisponível no free.
+- **`GET /api/health` consulta o banco** e é o `healthCheckPath` do Render. `DATABASE_URL`
+  errada derruba o deploy ali, com erro explícito, em vez de quebrar na cara do usuário.
+- **CORS deixou de ser aberto**: `main.ts` lê `CORS_ORIGIN` (lista separada por vírgula).
+  Sem a variável, libera geral — aceitável no localhost, por isso ela é obrigatória no
+  `render.yaml`.
+- **`app.listen(port, '0.0.0.0')`**: o proxy do Render não alcança `localhost`.
+- **`TZ=America/Sao_Paulo` fixado no Render** — os relatórios agregam em horário local do
+  processo; em UTC, lançamento do fim do dia cai no dia seguinte.
+- **Vercel**: Root Directory = `frontend` (é monorepo). `frontend/vercel.json` fixa a
+  região `gru1` (São Paulo). Única env: `NEXT_PUBLIC_API_URL`, **com o sufixo `/api`**.
+- Passo a passo completo em `DEPLOY.md`.

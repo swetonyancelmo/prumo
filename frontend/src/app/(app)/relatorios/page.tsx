@@ -7,7 +7,9 @@ import {
   TrendingUpIcon,
   TrendingDownIcon,
   BarChart3Icon,
+  DownloadIcon,
 } from "lucide-react";
+import { toast } from "sonner";
 import {
   Bar,
   BarChart,
@@ -25,7 +27,9 @@ import { formatBRL } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { PageHeader } from "@/components/page-header";
 import { CategoryTab } from "@/components/category-tab";
+import { useProfile } from "@/components/profile-provider";
 import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
 import {
   Card,
   CardContent,
@@ -101,9 +105,45 @@ function pctDelta(cur: number, prev: number): number | null {
 export default function RelatoriosPage() {
   const [period, setPeriod] = useState<ReportPeriod>("month");
   const [anchor, setAnchor] = useState<Date>(() => new Date());
+  const [exporting, setExporting] = useState(false);
+  const profile = useProfile();
 
   const path = `/reports?period=${period}&anchor=${anchorParam(anchor)}`;
   const { data: report, loading, error } = useResource<Report>(path);
+
+  async function handleDownloadPdf() {
+    if (!report) return;
+    setExporting(true);
+    try {
+      // Import dinâmico: o @react-pdf/renderer é pesado e só faz sentido quando
+      // o usuário realmente pede o PDF — carregá-lo no bundle da página faria
+      // todo mundo pagar por um recurso que poucos usam.
+      const [{ pdf }, { ReportPdf, reportFileName }] = await Promise.all([
+        import("@react-pdf/renderer"),
+        import("@/lib/report-pdf"),
+      ]);
+
+      const blob = await pdf(
+        <ReportPdf
+          report={report}
+          ownerName={profile.name ?? profile.email}
+          generatedAt={new Date()}
+        />,
+      ).toBlob();
+
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = reportFileName(report);
+      link.click();
+      // Sem o revoke o blob fica preso na memória da aba até o reload.
+      URL.revokeObjectURL(url);
+    } catch {
+      toast.error("Não foi possível gerar o PDF. Tente novamente.");
+    } finally {
+      setExporting(false);
+    }
+  }
 
   const hasData =
     !!report && (report.totals.incomes > 0 || report.totals.expenses > 0);
@@ -183,6 +223,21 @@ export default function RelatoriosPage() {
             aria-label="Próximo período"
           >
             <ChevronRightIcon />
+          </Button>
+
+          <Button
+            variant="outline"
+            onClick={handleDownloadPdf}
+            // Sem lançamentos o PDF sairia vazio — não vale o download.
+            disabled={exporting || loading || !hasData}
+            className="ml-1"
+          >
+            {exporting ? (
+              <Spinner data-icon="inline-start" />
+            ) : (
+              <DownloadIcon data-icon="inline-start" />
+            )}
+            {exporting ? "Gerando…" : "Baixar PDF"}
           </Button>
         </div>
       </div>
