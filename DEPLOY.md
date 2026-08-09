@@ -21,27 +21,43 @@ e o frontend precisa da URL da API.
 1. Crie a conta em [neon.tech](https://neon.tech) e um projeto novo.
 2. Configure:
    - **Postgres version**: 16 ou superior
-   - **Region**: `AWS US East (N. Virginia)` — mesma região da API no Render,
-     para o hop entre API e banco ser curto
-   - **Database name**: `prumo`
-3. Vá em **Connect** e copie a connection string. O Neon oferece **dois hosts
-   para o mesmo banco**, e você vai precisar dos dois — a diferença é o sufixo
-   `-pooler` no host:
+   - **Region**: `AWS US East (N. Virginia)` — **é o passo que mais importa aqui.**
+     Tem que ser a mesma região da API no Render. O Neon oferece São Paulo
+     (`sa-east-1`) e é tentador escolher, mas o plano free do Render não tem
+     região no Brasil: o banco em São Paulo com a API em Virginia faz **cada
+     query** do Prisma atravessar o continente (~120ms), e uma tela do painel
+     dispara várias. Você fica longe da API de qualquer jeito — mas isso custa
+     uma viagem por requisição, não uma por query.
+   - **Database name**: qualquer um serve. O Neon cria `neondb` por padrão;
+     só use nas URLs o nome que ele gerou.
 
-   | Variável | Host | Para quê |
+   A região **não pode ser alterada depois**. Se errar, crie outro projeto e
+   apague o antigo (enquanto está vazio, não se perde nada).
+
+3. Vá em **Connect**. O Neon mostra **uma** connection string por vez, mas você
+   precisa de **duas** — o toggle **Connection pooling** é o que alterna entre
+   elas (muda o sufixo `-pooler` no host):
+
+   | Variável | Toggle "Connection pooling" | Para quê |
    |---|---|---|
-   | `DATABASE_URL` | **com** `-pooler` | runtime (PgBouncer aguenta muitas conexões curtas) |
-   | `DIRECT_URL` | **sem** `-pooler` | `prisma migrate` (exige conexão direta) |
+   | `DATABASE_URL` | **ligado** (host com `-pooler`) | runtime (PgBouncer aguenta muitas conexões curtas) |
+   | `DIRECT_URL` | **desligado** (host sem `-pooler`) | `prisma migrate` (exige conexão direta) |
 
-   Monte assim, trocando usuário/senha/host pelos seus:
+   Copie com o toggle ligado, desligue, copie de novo. Depois ajuste as duas:
+
+   - **remova `channel_binding=require`**, que o Neon inclui por padrão — o
+     driver do Prisma não entende esse parâmetro;
+   - mantenha `sslmode=require` (o Neon só aceita TLS);
+   - acrescente `pgbouncer=true&connection_limit=1` **só na `DATABASE_URL`**,
+     que avisa o Prisma a não usar prepared statements — incompatíveis com o
+     pooler.
+
+   O resultado, trocando usuário/senha/host pelos seus:
 
    ```
-   DATABASE_URL=postgresql://USER:SENHA@ep-xxx-pooler.us-east-1.aws.neon.tech/prumo?sslmode=require&pgbouncer=true&connection_limit=1
-   DIRECT_URL=postgresql://USER:SENHA@ep-xxx.us-east-1.aws.neon.tech/prumo?sslmode=require
+   DATABASE_URL=postgresql://neondb_owner:SENHA@ep-xxx-pooler.us-east-1.aws.neon.tech/neondb?sslmode=require&pgbouncer=true&connection_limit=1
+   DIRECT_URL=postgresql://neondb_owner:SENHA@ep-xxx.us-east-1.aws.neon.tech/neondb?sslmode=require
    ```
-
-   `sslmode=require` é obrigatório — o Neon só aceita TLS. `pgbouncer=true`
-   avisa o Prisma para não usar prepared statements, incompatíveis com o pooler.
 
 Guarde as duas strings: elas vão para o Render no próximo passo.
 
