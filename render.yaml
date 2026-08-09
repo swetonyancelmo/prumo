@@ -18,12 +18,18 @@ services:
     region: virginia
     rootDir: backend
 
+    # `--include=dev` é OBRIGATÓRIO aqui: `NODE_ENV=production` (definido abaixo,
+    # e necessário em runtime) faz o npm pular as devDependencies, e é lá que
+    # moram o @nestjs/cli e o typescript. Sem a flag, o build morre em
+    # `nest: not found`. Em runtime nada disso é usado — o start roda o
+    # JavaScript já compilado em dist/.
+    #
     # `migrate deploy` no build (e não no start) para a migration rodar uma vez
     # por deploy, e não a cada restart do processo. Só aplica migrations já
     # versionadas — nunca gera nem apaga nada sozinho.
     # Em planos pagos, o lugar mais correto é `preDeployCommand` (indisponível
     # no free): lá a migration roda depois do build e antes de trocar a versão.
-    buildCommand: npm ci && npx prisma generate && npm run build && npx prisma migrate deploy
+    buildCommand: npm ci --include=dev && npx prisma generate && npm run build && npx prisma migrate deploy
     startCommand: npm run start:prod
 
     # O Render só considera o deploy saudável quando esta rota responde 200.

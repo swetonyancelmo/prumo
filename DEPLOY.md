@@ -86,6 +86,17 @@ Guarde as duas strings: elas vão para o Render no próximo passo.
 4. Clique em **Apply**. O primeiro deploy leva alguns minutos: instala as
    dependências, gera o Prisma Client, compila o TypeScript e **aplica as
    migrations no Neon**.
+
+   > Se você criar o serviço **manualmente** em vez de pelo Blueprint, o
+   > `render.yaml` é ignorado e você preenche tudo à mão. Nesse caso, use
+   > exatamente estes comandos (com **Root Directory** = `backend`):
+   >
+   > - **Build**: `npm ci --include=dev && npx prisma generate && npm run build && npx prisma migrate deploy`
+   > - **Start**: `npm run start:prod`
+   >
+   > O `--include=dev` não é opcional: `NODE_ENV=production` faz o npm pular as
+   > devDependencies, e é lá que estão o `@nestjs/cli` e o `typescript`. Sem ele
+   > o build falha em `nest: not found`.
 5. Confirme que subiu:
 
    ```bash
