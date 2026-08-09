@@ -21,7 +21,7 @@ cd .. && docker compose up -d && cd backend
 
 # 2. Backend
 npm install
-cp .env.example .env    # DATABASE_URL/DIRECT_URL já apontam pro Docker.
+cp .env.example .env    # DATABASE_URL já aponta pro Docker.
                         # Gere o JWT_SECRET: openssl rand -base64 48
 npm run prisma:generate
 npm run prisma:deploy   # aplica as migrations no Postgres local

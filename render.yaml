@@ -59,11 +59,10 @@ services:
         value: 30d
 
       # --- Preencher no Render (ver DEPLOY.md) ---
-      # Neon, host COM `-pooler` (PgBouncer) + `?sslmode=require&pgbouncer=true`
+      # Neon, host SEM `-pooler` (conexão direta) + `?sslmode=require`.
+      # Tem de ser a direta: o `prisma migrate`, que roda no build, não funciona
+      # de forma confiável através do PgBouncer.
       - key: DATABASE_URL
-        sync: false
-      # Neon, host SEM `-pooler` — `prisma migrate` exige conexão direta
-      - key: DIRECT_URL
         sync: false
       # URL do frontend na Vercel, ex.: https://prumo.vercel.app
       # Sem isto a API aceita qualquer origem.

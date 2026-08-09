@@ -132,8 +132,8 @@ Registradas em 2026-07-01. Estas são decisões efetivadas, não mais rascunho.
 - **Validação com Zod** (via `nestjs-zod` + `createZodDto`), não class-validator — validação
   declarativa e schemas reaproveitáveis. `ZodValidationPipe` registrado como `APP_PIPE` global.
 - **Migrations com `prisma migrate`** (arquivos versionados em `prisma/migrations`),
-  não `prisma db push`. O `migrate` usa `DIRECT_URL` (conexão direta); o runtime usa
-  `DATABASE_URL` (host `-pooler` no Neon; mesma URL no Docker local, que não tem pooler).
+  não `prisma db push`. Uma única `DATABASE_URL` serve ao runtime e ao `migrate` —
+  ver "Uma URL de banco só" nas decisões de auth/deploy.
 - **Auth**: substituída em 2026-08-09 por implementação própria — ver "Decisões
   tomadas — auth própria e deploy".
 - **Dinheiro**: `Decimal(12,2)` no Prisma; agregação financeira feita em centavos
@@ -164,8 +164,7 @@ Registradas em 2026-07-15. Efetivadas. Substitui o Supabase **como banco de dese
   `ordenai`/`ordenai_dev`/`ordenai`, volume nomeado `ordenai_postgres_data`, healthcheck com
   `pg_isready`. `TZ=America/Sao_Paulo` fixado no container porque os relatórios agregam em
   horário local do processo — sem isso, local e produção divergiriam.
-- **Sem pooler local**: `DATABASE_URL` e `DIRECT_URL` apontam ambas para 5432. A distinção
-  (host `-pooler` vs. direto) só existe no Neon e está documentada no `.env.example`.
+- **Sem pooler local**: `DATABASE_URL` aponta direto para a 5432 do container.
 - **O shim de `auth.uid()` e os init scripts foram removidos em 2026-08-09**, junto com o
   RLS que dependia deles. O `docker/` inteiro deixou de existir: o Postgres local é agora
   um Postgres puro, sem nada que imite o Supabase.
@@ -323,9 +322,15 @@ senha é escopo pequeno o bastante para morar no NestJS, ao lado do resto.
   `FORCE ROW LEVEL SECURITY`, e o `neondb_owner` do Neon **não tem `BYPASSRLS`** — mantê-las
   teria bloqueado o próprio backend (atributo de role não se herda por membership). O escopo
   por usuário vive na camada de serviço.
-- **Neon tem dois hosts para o mesmo banco**: com `-pooler` (PgBouncer) para `DATABASE_URL`,
-  sem `-pooler` para `DIRECT_URL` (o `prisma migrate` exige conexão direta). `sslmode=require`
-  nos dois; `pgbouncer=true` no primeiro.
+- **Uma URL de banco só.** O Neon expõe dois hosts para o mesmo banco (com e sem
+  `-pooler`), e o arranjo canônico do Prisma é `DATABASE_URL` no pooler + `directUrl` no
+  direto. Abandonamos isso em 2026-08-09: **usamos só a conexão direta**, em
+  `DATABASE_URL`. O `prisma migrate` (que roda no build do Render) não funciona de forma
+  confiável através do PgBouncer em modo transação — depende de advisory locks e sessão
+  persistente. Com uma instância free abrindo poucas conexões, o pooler resolvia um
+  problema que não temos, ao custo de uma segunda variável que já causou deploy quebrado
+  por estar ausente. `sslmode=require` é obrigatório; `channel_binding=require`, que o
+  Neon inclui por padrão, precisa ser removido — o driver do Prisma não o entende.
 
 ### Deploy
 - **`render.yaml` na raiz** (Blueprint): cria o serviço já configurado. `rootDir: backend`,

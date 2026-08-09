@@ -34,32 +34,28 @@ e o frontend precisa da URL da API.
    A região **não pode ser alterada depois**. Se errar, crie outro projeto e
    apague o antigo (enquanto está vazio, não se perde nada).
 
-3. Vá em **Connect**. O Neon mostra **uma** connection string por vez, mas você
-   precisa de **duas** — o toggle **Connection pooling** é o que alterna entre
-   elas (muda o sufixo `-pooler` no host):
+3. Vá em **Connect** e **DESLIGUE o toggle "Connection pooling"**. Você quer a
+   conexão **direta** — o host **sem** o sufixo `-pooler`.
 
-   | Variável | Toggle "Connection pooling" | Para quê |
-   |---|---|---|
-   | `DATABASE_URL` | **ligado** (host com `-pooler`) | runtime (PgBouncer aguenta muitas conexões curtas) |
-   | `DIRECT_URL` | **desligado** (host sem `-pooler`) | `prisma migrate` (exige conexão direta) |
+   O Neon oferece os dois endpoints, mas aqui usamos só o direto. O pooler
+   (PgBouncer, em modo transação) quebraria o `prisma migrate`, que roda no
+   build e depende de advisory locks e sessão persistente. Com uma instância só
+   no Render, abrindo poucas conexões, o pooler não traz ganho que compense.
 
-   Copie com o toggle ligado, desligue, copie de novo. Depois ajuste as duas:
+   Antes de copiar, clique em **Show password** — o Neon mascara a senha na tela
+   e você levaria asteriscos junto. Depois ajuste a string:
 
    - **remova `channel_binding=require`**, que o Neon inclui por padrão — o
      driver do Prisma não entende esse parâmetro;
-   - mantenha `sslmode=require` (o Neon só aceita TLS);
-   - acrescente `pgbouncer=true&connection_limit=1` **só na `DATABASE_URL`**,
-     que avisa o Prisma a não usar prepared statements — incompatíveis com o
-     pooler.
+   - mantenha `sslmode=require` (o Neon só aceita TLS).
 
    O resultado, trocando usuário/senha/host pelos seus:
 
    ```
-   DATABASE_URL=postgresql://neondb_owner:SENHA@ep-xxx-pooler.us-east-1.aws.neon.tech/neondb?sslmode=require&pgbouncer=true&connection_limit=1
-   DIRECT_URL=postgresql://neondb_owner:SENHA@ep-xxx.us-east-1.aws.neon.tech/neondb?sslmode=require
+   DATABASE_URL=postgresql://neondb_owner:SENHA@ep-xxx.us-east-1.aws.neon.tech/neondb?sslmode=require
    ```
 
-Guarde as duas strings: elas vão para o Render no próximo passo.
+Guarde essa string: ela vai para o Render no próximo passo.
 
 > **Autosuspend:** no plano free o Neon hiberna o banco após ~5 min sem uso. A
 > primeira consulta depois disso demora ~1s a mais. É esperado, não é bug.
@@ -72,12 +68,11 @@ Guarde as duas strings: elas vão para o Render no próximo passo.
 2. **New +** → **Blueprint** → escolha este repositório.
    O Render lê o [`render.yaml`](render.yaml) da raiz e já configura build,
    start, health check e região sozinho.
-3. Ele vai pedir as três variáveis que **não** ficam no repo:
+3. Ele vai pedir as duas variáveis que **não** ficam no repo:
 
    | Variável | Valor |
    |---|---|
-   | `DATABASE_URL` | a string **com** `-pooler` do passo 1 |
-   | `DIRECT_URL` | a string **sem** `-pooler` do passo 1 |
+   | `DATABASE_URL` | a string do passo 1 (host **sem** `-pooler`) |
    | `CORS_ORIGIN` | deixe **em branco por enquanto** — você só conhece a URL da Vercel no passo 3 |
 
    `JWT_SECRET` é gerado automaticamente pelo Render (`generateValue: true`).
@@ -182,8 +177,7 @@ automático. Migrations novas são aplicadas pelo build do Render.
 **Render (API)** — `render.yaml` já define `NODE_ENV`, `TZ`, `JWT_SECRET`,
 `JWT_ACCESS_TTL`, `JWT_REFRESH_TTL` e `NODE_VERSION`. Você preenche:
 
-- `DATABASE_URL` (Neon, com `-pooler`)
-- `DIRECT_URL` (Neon, sem `-pooler`)
+- `DATABASE_URL` (Neon, host **sem** `-pooler`)
 - `CORS_ORIGIN` (URL da Vercel)
 
 **Vercel (frontend)**:

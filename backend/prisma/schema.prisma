@@ -6,10 +6,14 @@ generator client {
   provider = "prisma-client-js"
 }
 
+// Uma única URL, e ela precisa ser a conexão DIRETA do Neon (host sem
+// `-pooler`). O `prisma migrate` não funciona de forma confiável através do
+// PgBouncer em modo transação — usa advisory locks, que dependem de sessão
+// persistente. Como a API roda numa instância só e abre poucas conexões, o
+// pooler não faz falta; ter as duas URLs era complexidade sem contrapartida.
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 // --------------------------------------------------------------------------
