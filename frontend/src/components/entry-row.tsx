@@ -4,6 +4,7 @@ import { PencilIcon, Trash2Icon } from "lucide-react";
 import type { Expense, Income } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { formatBRL, formatDate } from "@/lib/format";
+import { useBalanceVisibility, HIDDEN_AMOUNT } from "@/lib/use-balance-visibility";
 import { CategoryTab } from "@/components/category-tab";
 import { Button } from "@/components/ui/button";
 
@@ -74,6 +75,7 @@ function Row({
   onEdit: () => void;
   onDelete: () => void;
 }) {
+  const { visible } = useBalanceVisibility();
   return (
     <div className="group flex items-stretch gap-3 rounded-xl px-1 py-2.5">
       <CategoryTab colorKey={colorKey} />
@@ -88,7 +90,7 @@ function Row({
             amountClass,
           )}
         >
-          {sign} {amount}
+          {visible ? `${sign} ${amount}` : HIDDEN_AMOUNT}
         </span>
         {/*
           Editar e excluir apareciam só no hover — o que, num celular, é o

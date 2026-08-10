@@ -7,7 +7,9 @@ import { useResource } from "@/lib/use-resource";
 import { useShortcutFlag } from "@/lib/use-shortcut";
 import { api } from "@/lib/api";
 import { formatBRL, isSameMonth } from "@/lib/format";
+import { useBalanceVisibility, HIDDEN_AMOUNT } from "@/lib/use-balance-visibility";
 import { PageHeader } from "@/components/page-header";
+import { BalanceToggle } from "@/components/balance-toggle";
 import { ExpenseRow, IncomeRow } from "@/components/entry-row";
 import { EntryDialog } from "@/components/entry-dialog";
 import { ConfirmDialog } from "@/components/confirm-dialog";
@@ -50,6 +52,7 @@ export default function FinancasPage() {
 }
 
 function Financas() {
+  const { visible } = useBalanceVisibility();
   const expenses = useResource<Expense[]>("/expenses");
   const incomes = useResource<Income[]>("/incomes");
   const categories = useResource<Category[]>("/categories");
@@ -110,10 +113,13 @@ function Financas() {
         title="Finanças"
         subtitle="Suas despesas e receitas deste mês"
         action={
-          <Button onClick={openCreate}>
-            <PlusIcon data-icon="inline-start" />
-            Novo lançamento
-          </Button>
+          <div className="flex items-center gap-1">
+            <BalanceToggle />
+            <Button onClick={openCreate}>
+              <PlusIcon data-icon="inline-start" />
+              Novo lançamento
+            </Button>
+          </div>
         }
       />
 
@@ -123,7 +129,7 @@ function Financas() {
           <CardHeader>
             <CardTitle>Despesas</CardTitle>
             <CardDescription className="tabular-nums">
-              {formatBRL(totalExpenses)} no mês
+              {visible ? formatBRL(totalExpenses) : HIDDEN_AMOUNT} no mês
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -154,7 +160,7 @@ function Financas() {
           <CardHeader>
             <CardTitle>Receitas</CardTitle>
             <CardDescription className="tabular-nums">
-              {formatBRL(totalIncomes)} no mês
+              {visible ? formatBRL(totalIncomes) : HIDDEN_AMOUNT} no mês
             </CardDescription>
           </CardHeader>
           <CardContent>

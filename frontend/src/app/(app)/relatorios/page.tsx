@@ -24,8 +24,10 @@ import {
 import type { Report, ReportPeriod } from "@/lib/types";
 import { useResource } from "@/lib/use-resource";
 import { formatBRL } from "@/lib/format";
+import { useBalanceVisibility, HIDDEN_AMOUNT } from "@/lib/use-balance-visibility";
 import { cn } from "@/lib/utils";
 import { PageHeader } from "@/components/page-header";
+import { BalanceToggle } from "@/components/balance-toggle";
 import { CategoryTab } from "@/components/category-tab";
 import { useProfile } from "@/components/profile-provider";
 import { Button } from "@/components/ui/button";
@@ -107,6 +109,7 @@ export default function RelatoriosPage() {
   const [anchor, setAnchor] = useState<Date>(() => new Date());
   const [exporting, setExporting] = useState(false);
   const profile = useProfile();
+  const { visible } = useBalanceVisibility();
 
   const path = `/reports?period=${period}&anchor=${anchorParam(anchor)}`;
   const { data: report, loading, error } = useResource<Report>(path);
@@ -204,41 +207,51 @@ export default function RelatoriosPage() {
           ))}
         </ToggleGroup>
 
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => setAnchor((a) => shiftAnchor(a, period, -1))}
-            aria-label="Período anterior"
-          >
-            <ChevronLeftIcon />
-          </Button>
-          <span className="min-w-40 text-center text-sm font-medium">
-            {report?.range.label ?? "…"}
-          </span>
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => setAnchor((a) => shiftAnchor(a, period, 1))}
-            aria-label="Próximo período"
-          >
-            <ChevronRightIcon />
-          </Button>
+        {/*
+          No mobile o grupo inteiro ocupa a linha toda e quebra entre os dois
+          blocos (navegação × ações), nunca no meio de um — senão o botão do PDF
+          escapava da tela. A partir de sm volta a ser uma faixa só à direita.
+        */}
+        <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
+          <div className="flex flex-1 items-center gap-2 sm:flex-none">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => setAnchor((a) => shiftAnchor(a, period, -1))}
+              aria-label="Período anterior"
+            >
+              <ChevronLeftIcon />
+            </Button>
+            <span className="flex-1 text-center text-sm font-medium sm:min-w-40 sm:flex-none">
+              {report?.range.label ?? "…"}
+            </span>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => setAnchor((a) => shiftAnchor(a, period, 1))}
+              aria-label="Próximo período"
+            >
+              <ChevronRightIcon />
+            </Button>
+          </div>
 
-          <Button
-            variant="outline"
-            onClick={handleDownloadPdf}
-            // Sem lançamentos o PDF sairia vazio — não vale o download.
-            disabled={exporting || loading || !hasData}
-            className="ml-1"
-          >
-            {exporting ? (
-              <Spinner data-icon="inline-start" />
-            ) : (
-              <DownloadIcon data-icon="inline-start" />
-            )}
-            {exporting ? "Gerando…" : "Baixar PDF"}
-          </Button>
+          <div className="flex items-center gap-2">
+            <BalanceToggle />
+
+            <Button
+              variant="outline"
+              onClick={handleDownloadPdf}
+              // Sem lançamentos o PDF sairia vazio — não vale o download.
+              disabled={exporting || loading || !hasData}
+            >
+              {exporting ? (
+                <Spinner data-icon="inline-start" />
+              ) : (
+                <DownloadIcon data-icon="inline-start" />
+              )}
+              {exporting ? "Gerando…" : "Baixar PDF"}
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -260,6 +273,7 @@ export default function RelatoriosPage() {
               }
               goodWhen="up"
               loading={loading}
+              visible={visible}
             />
             <Kpi
               label="Despesas"
@@ -269,6 +283,7 @@ export default function RelatoriosPage() {
               }
               goodWhen="down"
               loading={loading}
+              visible={visible}
             />
             <Kpi
               label="Saldo"
@@ -279,6 +294,7 @@ export default function RelatoriosPage() {
               goodWhen="up"
               loading={loading}
               emphasize
+              visible={visible}
             />
           </div>
 
@@ -328,7 +344,7 @@ export default function RelatoriosPage() {
                                     {barConfig[name as keyof typeof barConfig]?.label}
                                   </span>
                                   <span className="font-medium tabular-nums">
-                                    {formatBRL(value as number)}
+                                    {visible ? formatBRL(value as number) : HIDDEN_AMOUNT}
                                   </span>
                                 </div>
                               )}
@@ -375,7 +391,7 @@ export default function RelatoriosPage() {
                                   nameKey="name"
                                   formatter={(value) => (
                                     <span className="font-medium tabular-nums">
-                                      {formatBRL(value as number)}
+                                      {visible ? formatBRL(value as number) : HIDDEN_AMOUNT}
                                     </span>
                                   )}
                                 />
@@ -419,7 +435,7 @@ export default function RelatoriosPage() {
                               <ChartTooltipContent
                                 formatter={(value) => (
                                   <span className="font-medium tabular-nums">
-                                    {formatBRL(value as number)}
+                                    {visible ? formatBRL(value as number) : HIDDEN_AMOUNT}
                                   </span>
                                 )}
                               />
@@ -458,7 +474,7 @@ export default function RelatoriosPage() {
                             </span>
                             <DeltaBadge delta={delta} goodWhen="down" />
                             <span className="w-24 text-right text-sm font-semibold tabular-nums">
-                              {formatBRL(c.total)}
+                              {visible ? formatBRL(c.total) : HIDDEN_AMOUNT}
                             </span>
                           </li>
                         );
@@ -482,6 +498,7 @@ function Kpi({
   goodWhen,
   loading,
   emphasize,
+  visible,
 }: {
   label: string;
   value: number | undefined;
@@ -489,6 +506,7 @@ function Kpi({
   goodWhen: "up" | "down";
   loading: boolean;
   emphasize?: boolean;
+  visible: boolean;
 }) {
   return (
     <Card>
@@ -508,7 +526,7 @@ function Kpi({
               emphasize && value < 0 && "text-destructive",
             )}
           >
-            {formatBRL(value)}
+            {visible ? formatBRL(value) : HIDDEN_AMOUNT}
           </p>
         )}
         <DeltaBadge delta={delta} goodWhen={goodWhen} showLabel />

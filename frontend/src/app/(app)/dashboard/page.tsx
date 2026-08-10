@@ -13,9 +13,11 @@ import {
   categoryColor,
 } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { useBalanceVisibility, HIDDEN_AMOUNT } from "@/lib/use-balance-visibility";
 import { useProfile } from "@/components/profile-provider";
 import { PageHeader } from "@/components/page-header";
 import { InstallPrompt } from "@/components/install-prompt";
+import { BalanceToggle } from "@/components/balance-toggle";
 import { CategoryTab } from "@/components/category-tab";
 import { TaskRow } from "@/components/task-row";
 import { Button } from "@/components/ui/button";
@@ -38,6 +40,7 @@ import { toast } from "sonner";
 
 export default function DashboardPage() {
   const profile = useProfile();
+  const { visible } = useBalanceVisibility();
   const expenses = useResource<Expense[]>("/expenses");
   const incomes = useResource<Income[]>("/incomes");
   const tasks = useResource<Task[]>("/tasks");
@@ -85,10 +88,11 @@ export default function DashboardPage() {
 
       {/* Cartão de saldo */}
       <Card className="mb-6 overflow-hidden">
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="text-sm font-medium text-muted-foreground">
             Saldo do mês
           </CardTitle>
+          <BalanceToggle className="-my-2" />
         </CardHeader>
         <CardContent className="flex flex-col gap-5">
           {loadingMoney ? (
@@ -100,8 +104,9 @@ export default function DashboardPage() {
                 summary.balance >= 0 ? "text-success" : "text-destructive",
               )}
             >
-              {summary.balance >= 0 ? "+ " : "− "}
-              {formatBRL(Math.abs(summary.balance))}
+              {visible
+                ? `${summary.balance >= 0 ? "+ " : "− "}${formatBRL(Math.abs(summary.balance))}`
+                : HIDDEN_AMOUNT}
             </p>
           )}
 
@@ -109,13 +114,13 @@ export default function DashboardPage() {
             <span className="text-muted-foreground">
               Receitas{" "}
               <span className="font-medium tabular-nums text-foreground">
-                {formatBRL(summary.totalIncomes)}
+                {visible ? formatBRL(summary.totalIncomes) : HIDDEN_AMOUNT}
               </span>
             </span>
             <span className="text-muted-foreground">
               Despesas{" "}
               <span className="font-medium tabular-nums text-foreground">
-                {formatBRL(summary.totalExpenses)}
+                {visible ? formatBRL(summary.totalExpenses) : HIDDEN_AMOUNT}
               </span>
             </span>
           </div>
@@ -126,7 +131,7 @@ export default function DashboardPage() {
               {summary.byCategory.map((c) => (
                 <div
                   key={c.key}
-                  title={`${c.name} · ${formatBRL(c.total)}`}
+                  title={visible ? `${c.name} · ${formatBRL(c.total)}` : c.name}
                   style={{
                     width: `${Math.max(c.share * 100, 2)}%`,
                     backgroundColor: categoryColor(c.key),
@@ -165,7 +170,7 @@ export default function DashboardPage() {
                       {Math.round(c.share * 100)}%
                     </span>
                     <span className="w-24 text-right text-sm font-medium tabular-nums">
-                      {formatBRL(c.total)}
+                      {visible ? formatBRL(c.total) : HIDDEN_AMOUNT}
                     </span>
                   </li>
                 ))}
