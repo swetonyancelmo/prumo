@@ -1,4 +1,6 @@
 import { NestFactory } from '@nestjs/core';
+import { NestExpressApplication } from '@nestjs/platform-express';
+import helmet from 'helmet';
 import { AppModule } from './app.module';
 
 /**
@@ -19,7 +21,13 @@ function corsOrigin(): string[] | boolean {
 }
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+
+  // Configura o Express para confiar nos cabeçalhos de proxy do Render (necessário para rate limit)
+  app.set('trust proxy', true);
+
+  // Cabeçalhos HTTP de segurança contra vulnerabilidades comuns
+  app.use(helmet());
 
   app.setGlobalPrefix('api');
   app.enableCors({
