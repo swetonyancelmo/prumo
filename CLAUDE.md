@@ -19,6 +19,7 @@ toda entrada de dados é feita pela própria pessoa no painel.
 - **Banco de dados — produção**: **Neon** (Postgres gerenciado)
 - **Auth**: **própria, no NestJS** (e-mail + senha, bcrypt, JWT HS256). Sem provedor
   externo. Ver "Decisões tomadas — auth própria e deploy".
+- **Segurança**: Rate Limit (`@nestjs/throttler`) + cabeçalhos HTTP (`helmet`).
 - **Frontend web**: Next.js 16 + Tailwind v4 + shadcn/ui (base UI)
 - **ORM**: Prisma
 - **Deploy**: Vercel (frontend) + Render (API) + Neon (banco). Ver `DEPLOY.md`.
@@ -41,6 +42,9 @@ incomes
 tasks
   id, user_id, description, due_date, has_time, is_recurring,
   recurrence_rule (nullable), is_completed, created_at
+
+notes
+  id, user_id, title (nullable), content, created_at, updated_at
 ```
 
 `users.id` é gerado pelo próprio app (uuid). `email` é a credencial de login — obrigatório
@@ -70,6 +74,8 @@ Estado atual: o núcleo web (cadastro, CRUD de finanças/tarefas, dashboard, rel
 - [x] **Pronto para deploy**: Neon + Render + Vercel (`render.yaml`, `DEPLOY.md`)
 - [x] **PWA instalável**: manifest, ícones, atalhos e polimento de toque (ver
       "Decisões tomadas — PWA e uso no celular")
+- [x] **Anotações**: CRUD de notas com formatação markdown e visualização em tempo real (Next.js + NestJS)
+- [x] **Rate Limit e Segurança**: Limitação de taxa por IP, Helmet e trust proxy na API
 - [ ] **Recuperação de senha**: exige provedor de e-mail (Resend/similar). Hoje, quem
       esquece a senha não tem como recuperar a conta.
 - [ ] **Export de dados (LGPD)**: endpoint + botão que devolva TODOS os dados do
@@ -86,7 +92,7 @@ Estado atual: o núcleo web (cadastro, CRUD de finanças/tarefas, dashboard, rel
 ## Convenções para o Claude Code
 
 - Estrutura de módulos do NestJS: `UsersModule`, `FinanceModule`, `TasksModule`,
-  `ReportsModule`, `AuthModule`.
+  `NotesModule`, `ReportsModule`, `AuthModule`.
 - Escrever testes (TDD) para toda lógica de **cálculo financeiro e de relatórios**.
 - Não inventar chaves de API — usar variáveis de ambiente (`.env`, nunca commitado).
 - Ao final de cada bloco de trabalho, rodar os testes e mostrar um resumo antes de avançar.
@@ -407,3 +413,21 @@ senha é escopo pequeno o bastante para morar no NestJS, ao lado do resto.
 - **Vercel**: Root Directory = `frontend` (é monorepo). `frontend/vercel.json` fixa a
   região `gru1` (São Paulo). Única env: `NEXT_PUBLIC_API_URL`, **com o sufixo `/api`**.
 - Passo a passo completo em `DEPLOY.md`.
+
+## Decisões tomadas — Anotações e Segurança (Rate Limit & Helmet)
+
+Registradas em 2026-08-11. Efetivadas.
+
+- **Anotações (Notes CRUD)**:
+  - Adicionada a tabela `Note` vinculada ao usuário com exclusão em cascata.
+  - Criada a rota de frontend `/anotacoes` integrada no menu lateral.
+  - Implementada uma tela master-detail responsiva (divide em duas colunas no desktop, tela cheia no mobile).
+  - Incluídos botões de formatação markdown (Negrito, Itálico, Código inline, Bloco de código, Títulos e Listas) e atalhos de teclado `Ctrl+B` / `Ctrl+I`.
+  - Adicionada uma aba "Visualizar" com um parser Markdown leve que limpa a string escapando caracteres HTML antes de processá-los, garantindo total blindagem contra injeções de XSS.
+- **Rate Limit na API**:
+  - Limite global configurado para 100 requisições/min por IP.
+  - Limite estrito de 5 requisições/min por IP em rotas críticas do `AuthController` (`register`, `login`, `refresh`) para impedir brute force.
+  - Resposta customizada amigável de erro 429 configurada diretamente no NestJS.
+- **Helmet e Reverse Proxy**:
+  - Helmet ativado globalmente para injetar cabeçalhos HTTP recomendados.
+  - `trust proxy` ativado no NestJS/Express para ler corretamente o IP dos clientes por trás dos proxies da Vercel/Render.
