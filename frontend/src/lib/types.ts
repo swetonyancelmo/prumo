@@ -70,3 +70,11 @@ export interface Task {
   isCompleted: boolean;
   createdAt: string;
 }
+
+export interface Note {
+  id: string;
+  title: string | null;
+  content: string;
+  createdAt: string;
+  updatedAt: string;
+}

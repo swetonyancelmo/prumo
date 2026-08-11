@@ -42,6 +42,7 @@ model User {
   expenses   Expense[]
   incomes    Income[]
   tasks      Task[]
+  notes      Note[]
 
   @@map("users")
 }
@@ -110,4 +111,18 @@ model Task {
   @@index([userId, dueDate])
   @@index([userId, isCompleted])
   @@map("tasks")
+}
+
+model Note {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  title     String?  @db.VarChar(100)
+  content   String   @db.Text
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, updatedAt])
+  @@map("notes")
 }

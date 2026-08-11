@@ -8,6 +8,7 @@ import {
   ListChecksIcon,
   BarChart3Icon,
   LogOutIcon,
+  NotebookIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/components/auth-provider";
@@ -32,6 +33,7 @@ const NAV = [
   { href: "/financas", label: "Finanças", icon: WalletIcon },
   { href: "/relatorios", label: "Relatórios", icon: BarChart3Icon },
   { href: "/tarefas", label: "Tarefas", icon: ListChecksIcon },
+  { href: "/anotacoes", label: "Anotações", icon: NotebookIcon },
 ] as const;
 
 function useInitials() {
