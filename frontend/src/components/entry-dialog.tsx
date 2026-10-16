@@ -224,6 +224,13 @@ export function EntryDialog({
               <Field>
                 <FieldLabel>Categoria</FieldLabel>
                 <Select
+                  items={{
+                    [NONE]: "Sem categoria",
+                    ...Object.fromEntries(
+                      despesaCategories.map((c) => [c.id, c.name]),
+                    ),
+                    [NEW]: "➕ Nova categoria…",
+                  }}
                   value={categoryValue}
                   onValueChange={(v) => setCategoryValue(v as string)}
                 >

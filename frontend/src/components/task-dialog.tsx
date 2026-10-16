@@ -174,6 +174,7 @@ export function TaskDialog({
             <Field>
               <FieldLabel>Repetir</FieldLabel>
               <Select
+                items={{ [NO_REPEAT]: "Não repete", ...RRULE_LABELS }}
                 value={recurrence}
                 onValueChange={(v) => setRecurrence(v as string)}
               >
