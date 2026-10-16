@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { Task } from "@/lib/types";
+import type { Task, TaskStatus } from "@/lib/types";
+import { TASK_COLUMNS, TASK_STATUS_LABELS } from "@/lib/task-utils";
 import { api, ApiError } from "@/lib/api";
 import {
   toDateInputValue,
@@ -11,6 +12,7 @@ import {
 } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Spinner } from "@/components/ui/spinner";
 import {
   Dialog,
@@ -46,15 +48,20 @@ export function TaskDialog({
   open,
   onOpenChange,
   editing,
+  defaultStatus = "todo",
   onSaved,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   editing: Task | null;
+  /** Coluna pré-selecionada ao criar (ex.: botão "+" de uma coluna). */
+  defaultStatus?: TaskStatus;
   onSaved: () => void | Promise<void>;
 }) {
   const isEdit = editing !== null;
+  const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [status, setStatus] = useState<TaskStatus>(defaultStatus);
   const [dueDate, setDueDate] = useState("");
   const [dueTime, setDueTime] = useState("");
   const [recurrence, setRecurrence] = useState<string>(NO_REPEAT);
@@ -64,17 +71,19 @@ export function TaskDialog({
     if (!open) return;
     // Hidrata o formulário a partir das props quando o diálogo abre.
     /* eslint-disable react-hooks/set-state-in-effect */
+    setTitle(editing?.title ?? "");
     setDescription(editing?.description ?? "");
+    setStatus(editing?.status ?? defaultStatus);
     setDueDate(toDateInputValue(editing?.dueDate ?? null));
     setDueTime(editing?.hasTime ? toTimeInputValue(editing.dueDate) : "");
     setRecurrence(editing?.recurrenceRule ?? NO_REPEAT);
     /* eslint-enable react-hooks/set-state-in-effect */
-  }, [open, editing]);
+  }, [open, editing, defaultStatus]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!description.trim()) {
-      toast.error("Descreva a tarefa.");
+    if (!title.trim()) {
+      toast.error("Dê um título à tarefa.");
       return;
     }
     setSaving(true);
@@ -92,7 +101,9 @@ export function TaskDialog({
 
       if (isEdit) {
         await api.patch(`/tasks/${editing.id}`, {
-          description: description.trim(),
+          title: title.trim(),
+          description: description.trim() || null,
+          status,
           dueDate: iso,
           hasTime,
           isRecurring,
@@ -100,7 +111,9 @@ export function TaskDialog({
         });
       } else {
         await api.post("/tasks", {
-          description: description.trim(),
+          title: title.trim(),
+          ...(description.trim() ? { description: description.trim() } : {}),
+          status,
           ...(iso ? { dueDate: iso } : {}),
           hasTime,
           isRecurring,
@@ -132,16 +145,48 @@ export function TaskDialog({
         <form onSubmit={handleSubmit} id="task-form">
           <FieldGroup>
             <Field>
-              <FieldLabel htmlFor="task-desc">O que precisa fazer?</FieldLabel>
+              <FieldLabel htmlFor="task-title">O que precisa fazer?</FieldLabel>
               <Input
-                id="task-desc"
+                id="task-title"
                 placeholder="Pagar conta de luz"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
                 maxLength={280}
                 required
                 autoFocus
               />
+            </Field>
+
+            <Field>
+              <FieldLabel htmlFor="task-desc">Descrição</FieldLabel>
+              <Textarea
+                id="task-desc"
+                placeholder="Detalhes, links, o que for preciso lembrar…"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                maxLength={5000}
+                className="max-h-48"
+              />
+            </Field>
+
+            <Field>
+              <FieldLabel>Coluna</FieldLabel>
+              <Select
+                items={TASK_STATUS_LABELS}
+                value={status}
+                onValueChange={(v) => setStatus(v as TaskStatus)}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {TASK_COLUMNS.map((c) => (
+                    <SelectItem key={c.status} value={c.status}>
+                      {c.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </Field>
 
             <Field>

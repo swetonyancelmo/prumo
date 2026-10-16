@@ -40,8 +40,8 @@ incomes
   id, user_id, amount, description, received_at, created_at
 
 tasks
-  id, user_id, description, due_date, has_time, is_recurring,
-  recurrence_rule (nullable), is_completed, created_at
+  id, user_id, title, description (nullable), status (backlog|todo|doing|done),
+  due_date, has_time, is_recurring, recurrence_rule (nullable), created_at
 
 notes
   id, user_id, title (nullable), content, created_at, updated_at
@@ -76,6 +76,8 @@ Estado atual: o núcleo web (cadastro, CRUD de finanças/tarefas, dashboard, rel
       "Decisões tomadas — PWA e uso no celular")
 - [x] **Anotações**: CRUD de notas com formatação markdown e visualização em tempo real (Next.js + NestJS)
 - [x] **Rate Limit e Segurança**: Limitação de taxa por IP, Helmet e trust proxy na API
+- [x] **Kanban de tarefas**: título + descrição, quadro com 4 colunas fixas, arrastar ou
+      "Mover para" (ver "Decisões tomadas — Kanban de tarefas")
 - [ ] **Recuperação de senha**: exige provedor de e-mail (Resend/similar). Hoje, quem
       esquece a senha não tem como recuperar a conta.
 - [ ] **Export de dados (LGPD)**: endpoint + botão que devolva TODOS os dados do
@@ -431,3 +433,28 @@ Registradas em 2026-08-11. Efetivadas.
 - **Helmet e Reverse Proxy**:
   - Helmet ativado globalmente para injetar cabeçalhos HTTP recomendados.
   - `trust proxy` ativado no NestJS/Express para ler corretamente o IP dos clientes por trás dos proxies da Vercel/Render.
+
+## Decisões tomadas — Kanban de tarefas
+
+Registradas em 2026-10-16. Efetivadas.
+
+- **Colunas fixas**: enum `TaskStatus` = `backlog | todo | doing | done` (rótulos Backlog /
+  A fazer / Fazendo / Feito, em `frontend/src/lib/task-utils.ts`). Colunas personalizáveis
+  exigiriam tabela própria e CRUD — fora de escopo por ora.
+- **`status` substituiu `is_completed`** — os dois juntos permitiriam estados contraditórios.
+  "Concluída" é `status === 'done'` (helper `isDone`). O checkbox do dashboard alterna
+  `done` ↔ `todo`. Criar sem status cai em `todo`.
+- **`title` + `description`**: o antigo `description` (texto curto) virou `title`; o novo
+  `description` é o texto longo opcional (até 5000). A migration `20261016000000_task_kanban`
+  foi **escrita à mão** com `RENAME COLUMN` e `UPDATE ... WHERE is_completed` — o diff do
+  Prisma faria drop + add e apagaria os títulos.
+- **Ordem automática**: dentro da coluna, por vencimento (a API ordena; o front só agrupa).
+  Arrastar troca a coluna, não a posição — não existe campo `position`.
+- **Arraste com `@dnd-kit/core`** (`components/task-board.tsx`): `MouseSensor` com distância
+  mínima (clique no cartão continua sendo "editar") e `TouchSensor` com *delay* (rolar a
+  coluna no celular não vira arraste). Mover é **otimista** (`useResource().setData`) e
+  reverte com toast se a API recusar.
+- **No celular, "Mover para" é o caminho principal**: as colunas ficam em rolagem horizontal
+  com snap, e arrastar até uma coluna fora da tela é desajeitado. O menu do cartão é um
+  grupo plano (sem submenu), mais fácil no toque.
+

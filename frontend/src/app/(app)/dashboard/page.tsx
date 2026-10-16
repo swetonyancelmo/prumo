@@ -20,6 +20,7 @@ import { InstallPrompt } from "@/components/install-prompt";
 import { BalanceToggle } from "@/components/balance-toggle";
 import { CategoryTab } from "@/components/category-tab";
 import { TaskRow } from "@/components/task-row";
+import { isDone } from "@/lib/task-utils";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -52,7 +53,7 @@ export default function DashboardPage() {
   );
 
   const pendingTasks = useMemo(
-    () => (tasks.data ?? []).filter((t) => !t.isCompleted).slice(0, 5),
+    () => (tasks.data ?? []).filter((t) => !isDone(t)).slice(0, 5),
     [tasks.data],
   );
 
@@ -62,7 +63,10 @@ export default function DashboardPage() {
   async function toggleTask(task: Task) {
     setTogglingId(task.id);
     try {
-      await api.patch(`/tasks/${task.id}`, { isCompleted: !task.isCompleted });
+      // Concluir manda para "Feito"; desmarcar devolve para "A fazer".
+      await api.patch(`/tasks/${task.id}`, {
+        status: isDone(task) ? "todo" : "done",
+      });
       await tasks.refetch();
     } catch {
       toast.error("Não foi possível atualizar a tarefa.");

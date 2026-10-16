@@ -3,31 +3,10 @@
 import { CalendarIcon, RepeatIcon, PencilIcon, Trash2Icon } from "lucide-react";
 import type { Task } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { daysUntil, formatDate, formatTime } from "@/lib/format";
+import { dueLabel, isDone, statusColor } from "@/lib/task-utils";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-
-function statusColor(task: Task): string {
-  if (task.isCompleted) return "var(--muted-foreground)";
-  const d = daysUntil(task.dueDate);
-  if (d === null) return "var(--chart-1)";
-  if (d < 0) return "var(--destructive)";
-  if (d <= 2) return "var(--chart-4)";
-  return "var(--chart-1)";
-}
-
-function dueLabel(task: Task): { text: string; overdue: boolean } | null {
-  if (!task.dueDate) return null;
-  const d = daysUntil(task.dueDate);
-  if (d === null) return null;
-  const at = task.hasTime ? ` · ${formatTime(task.dueDate)}` : "";
-  if (d < 0)
-    return { text: `Atrasada · ${formatDate(task.dueDate)}${at}`, overdue: true };
-  if (d === 0) return { text: `Vence hoje${at}`, overdue: false };
-  if (d === 1) return { text: `Vence amanhã${at}`, overdue: false };
-  return { text: `${formatDate(task.dueDate)}${at}`, overdue: false };
-}
 
 export function TaskRow({
   task,
@@ -43,6 +22,7 @@ export function TaskRow({
   busy?: boolean;
 }) {
   const due = dueLabel(task);
+  const done = isDone(task);
   return (
     <div className="flex items-stretch gap-3 rounded-xl px-1 py-2">
       <span
@@ -51,22 +31,22 @@ export function TaskRow({
         style={{ backgroundColor: statusColor(task) }}
       />
       <Checkbox
-        checked={task.isCompleted}
+        checked={done}
         onCheckedChange={() => onToggle(task)}
         disabled={busy}
         className="mt-0.5"
         aria-label={
-          task.isCompleted ? "Marcar como pendente" : "Concluir tarefa"
+          done ? "Marcar como pendente" : "Concluir tarefa"
         }
       />
       <div className="min-w-0 flex-1">
         <p
           className={cn(
             "text-sm",
-            task.isCompleted && "text-muted-foreground line-through",
+            done && "text-muted-foreground line-through",
           )}
         >
-          {task.description}
+          {task.title}
         </p>
         <div className="mt-1 flex flex-wrap items-center gap-1.5">
           {due && (

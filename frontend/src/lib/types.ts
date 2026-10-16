@@ -60,14 +60,18 @@ export interface Report {
   series: ReportSeriesPoint[];
 }
 
+/** Colunas fixas do quadro Kanban de tarefas. */
+export type TaskStatus = "backlog" | "todo" | "doing" | "done";
+
 export interface Task {
   id: string;
-  description: string;
+  title: string;
+  description: string | null;
+  status: TaskStatus;
   dueDate: string | null;
   hasTime: boolean;
   isRecurring: boolean;
   recurrenceRule: string | null;
-  isCompleted: boolean;
   createdAt: string;
 }
 

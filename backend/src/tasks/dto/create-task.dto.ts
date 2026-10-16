@@ -1,9 +1,15 @@
 import { createZodDto } from 'nestjs-zod';
 import { z } from 'zod';
 
+// Colunas fixas do quadro Kanban.
+export const taskStatusSchema = z.enum(['backlog', 'todo', 'doing', 'done']);
+
 export const createTaskSchema = z
   .object({
-    description: z.string().min(1).max(280),
+    title: z.string().min(1).max(280),
+    // Texto longo opcional (detalhes da tarefa).
+    description: z.string().max(5000).optional(),
+    status: taskStatusSchema.optional().default('todo'),
     dueDate: z.coerce.date().optional(),
     // true quando dueDate carrega um horário significativo (compromisso/agenda).
     hasTime: z.boolean().optional().default(false),

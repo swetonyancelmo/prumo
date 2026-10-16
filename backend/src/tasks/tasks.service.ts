@@ -11,7 +11,9 @@ export class TasksService {
     return this.prisma.task.create({
       data: {
         userId,
+        title: dto.title,
         description: dto.description,
+        status: dto.status ?? 'todo',
         dueDate: dto.dueDate,
         hasTime: dto.hasTime ?? false,
         isRecurring: dto.isRecurring ?? false,
@@ -23,7 +25,9 @@ export class TasksService {
   findAll(userId: string) {
     return this.prisma.task.findMany({
       where: { userId },
-      orderBy: [{ isCompleted: 'asc' }, { dueDate: 'asc' }],
+      // O agrupamento por coluna do Kanban é feito no front; aqui só a ordem
+      // dentro de cada coluna (por vencimento, sem posição manual).
+      orderBy: [{ dueDate: 'asc' }, { createdAt: 'asc' }],
     });
   }
 

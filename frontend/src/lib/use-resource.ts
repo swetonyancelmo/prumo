@@ -8,6 +8,8 @@ interface ResourceState<T> {
   loading: boolean;
   error: string | null;
   refetch: () => Promise<void>;
+  /** Troca o dado local sem ir à API (atualização otimista). */
+  setData: (updater: (prev: T | null) => T | null) => void;
 }
 
 /**
@@ -40,5 +42,5 @@ export function useResource<T>(path: string, enabled = true): ResourceState<T> {
     if (enabled) void refetch();
   }, [enabled, refetch]);
 
-  return { data, loading, error, refetch };
+  return { data, loading, error, refetch, setData };
 }

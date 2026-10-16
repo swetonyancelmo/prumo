@@ -1,25 +1,16 @@
 "use client";
 
-import { Suspense, useMemo, useState } from "react";
-import { PlusIcon, ListChecksIcon } from "lucide-react";
-import type { Task } from "@/lib/types";
+import { Suspense, useState } from "react";
+import { PlusIcon } from "lucide-react";
+import type { Task, TaskStatus } from "@/lib/types";
 import { useResource } from "@/lib/use-resource";
 import { useShortcutFlag } from "@/lib/use-shortcut";
 import { api } from "@/lib/api";
 import { PageHeader } from "@/components/page-header";
-import { TaskRow } from "@/components/task-row";
+import { TaskBoard } from "@/components/task-board";
 import { TaskDialog } from "@/components/task-dialog";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Empty,
-  EmptyHeader,
-  EmptyTitle,
-  EmptyDescription,
-  EmptyMedia,
-} from "@/components/ui/empty";
 import { toast } from "sonner";
 
 export default function TarefasPage() {
@@ -38,19 +29,12 @@ function Tarefas() {
   const fromShortcut = useShortcutFlag("nova");
   const [dialogOpen, setDialogOpen] = useState(fromShortcut);
   const [editing, setEditing] = useState<Task | null>(null);
+  const [createIn, setCreateIn] = useState<TaskStatus>("todo");
   const [deleting, setDeleting] = useState<Task | null>(null);
-  const [togglingId, setTogglingId] = useState<string | null>(null);
 
-  const { pending, done } = useMemo(() => {
-    const all = tasks.data ?? [];
-    return {
-      pending: all.filter((t) => !t.isCompleted),
-      done: all.filter((t) => t.isCompleted),
-    };
-  }, [tasks.data]);
-
-  function openCreate() {
+  function openCreate(status: TaskStatus = "todo") {
     setEditing(null);
+    setCreateIn(status);
     setDialogOpen(true);
   }
   function openEdit(task: Task) {
@@ -58,15 +42,18 @@ function Tarefas() {
     setDialogOpen(true);
   }
 
-  async function toggleTask(task: Task) {
-    setTogglingId(task.id);
+  // Otimista: o cartão muda de coluna na hora e volta se a API recusar.
+  async function moveTask(task: Task, status: TaskStatus) {
+    const setStatus = (s: TaskStatus) =>
+      tasks.setData((prev) =>
+        prev ? prev.map((t) => (t.id === task.id ? { ...t, status: s } : t)) : prev,
+      );
+    setStatus(status);
     try {
-      await api.patch(`/tasks/${task.id}`, { isCompleted: !task.isCompleted });
-      await tasks.refetch();
+      await api.patch(`/tasks/${task.id}`, { status });
     } catch {
-      toast.error("Não foi possível atualizar a tarefa.");
-    } finally {
-      setTogglingId(null);
+      setStatus(task.status);
+      toast.error("Não foi possível mover a tarefa.");
     }
   }
 
@@ -87,83 +74,28 @@ function Tarefas() {
         title="Tarefas"
         subtitle="O que precisa da sua atenção"
         action={
-          <Button onClick={openCreate}>
+          <Button onClick={() => openCreate()}>
             <PlusIcon data-icon="inline-start" />
             Nova tarefa
           </Button>
         }
       />
 
-      <div className="flex flex-col gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Pendentes</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {tasks.loading ? (
-              <div className="flex flex-col gap-3 py-2">
-                {[0, 1, 2].map((i) => (
-                  <Skeleton key={i} className="h-10 w-full" />
-                ))}
-              </div>
-            ) : pending.length === 0 ? (
-              <Empty className="py-8">
-                <EmptyHeader>
-                  <EmptyMedia variant="icon">
-                    <ListChecksIcon />
-                  </EmptyMedia>
-                  <EmptyTitle>Nada pendente</EmptyTitle>
-                  <EmptyDescription>
-                    Adicione uma tarefa para começar a se organizar.
-                  </EmptyDescription>
-                </EmptyHeader>
-              </Empty>
-            ) : (
-              <div className="flex flex-col divide-y">
-                {pending.map((task) => (
-                  <TaskRow
-                    key={task.id}
-                    task={task}
-                    onToggle={toggleTask}
-                    onEdit={openEdit}
-                    onDelete={setDeleting}
-                    busy={togglingId === task.id}
-                  />
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {done.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-muted-foreground">
-                Concluídas
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-col divide-y">
-                {done.map((task) => (
-                  <TaskRow
-                    key={task.id}
-                    task={task}
-                    onToggle={toggleTask}
-                    onEdit={openEdit}
-                    onDelete={setDeleting}
-                    busy={togglingId === task.id}
-                  />
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        )}
-      </div>
+      <TaskBoard
+        tasks={tasks.data ?? []}
+        // Só o carregamento inicial mostra esqueleto; um refetch não pisca o quadro.
+        loading={tasks.loading && !tasks.data}
+        onCreate={openCreate}
+        onEdit={openEdit}
+        onDelete={setDeleting}
+        onMove={moveTask}
+      />
 
       <TaskDialog
         open={dialogOpen}
         onOpenChange={setDialogOpen}
         editing={editing}
+        defaultStatus={createIn}
         onSaved={tasks.refetch}
       />
 
